@@ -1,0 +1,17 @@
+.DS_Store
+Thumbs.db
+
+get_credentials.py
+*.nc
+*.grib2
+*.npy
+*.h5
+*.pyc
+
+# Shape files
+*.cpg
+*.dbf
+*.prj
+*.shp
+*.shx
+*.xml
