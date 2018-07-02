@@ -8,8 +8,10 @@ Quickly get data from the MesoWest API.
 
 Get your own MesoWest API key and token from https://mesowest.org/api/signup/
 
-    get_mesowest_ts     - get a time series of data for a single station 
-    get_mesowest_radius - get data from stations within a radius
+    get_mesowest_ts         - get a time series of data for a single station 
+    get_mesowest_radius     - get data from stations within a radius
+    get_mesowest_stninfo    - get a dictionary of each station's metadata
+    get_mesowest_perceniles - get a series of observed percentiles for a station
 """
 
 from datetime import datetime
@@ -253,6 +255,126 @@ def get_mesowest_radius(DATE, location,
         return 'ERROR'
 
 
+def get_mesowest_stninfo(STIDs, extra='', verbose=True):
+    """
+    Creates a Location Dictionary, where each key is a unique station id that 
+    contains a dictionary including latitude, longitude, elevation, and other
+    metadata.
+
+    Input:
+        STIDs    - A list of station IDs or a string of stations separated by
+                   a comma.
+        extra    - Any extra API arguments you want to attach to the URL.
+        verbose  - True: Print some diagnostics
+                   False: Don't print anything
+    
+    Returns a dictionary of dictionaries containing metadata for each station.
+    """
+    # API call requires list of stations to be comma separated. If a list is
+    # the input, then convert it to a comma separted list.
+    if isinstance(STIDs, list):
+        STIDs = ','.join(STIDs)
+
+    # Build the URL
+    URL = 'http://api.mesowest.net/v2/stations/metadata?' \
+        + '&token=' + get_MW_token() \
+        + '&stid=' + STIDs \
+        + extra
+
+    if verbose:
+        print('Retrieving from MesoWest API: %s\n' % URL)
+
+    ## Open URL, and convert JSON to some python-readable format.
+    data = load_json(URL)
+
+    ## Store the relavant information in a location dictionary.
+    location_dict = {}
+
+    for i in data['STATION']:
+        location_dict[i['STID']] = {'LATITUDE':float(i['LATITUDE']),
+                                    'LONGITUDE':float(i['LONGITUDE']),
+                                    'NAME':i['NAME'],
+                                    'ELEVATION':int(i['ELEVATION']),
+                                    'TIMEZONE': i['TIMEZONE'],
+                                    'STATUS': i['STATUS'],
+                                    'PERIOD_OF_RECORD': (datetime.strptime(i['PERIOD_OF_RECORD']['start'], '%Y-%m-%dT%H:%M:%SZ'),
+                                                         datetime.strptime(i['PERIOD_OF_RECORD']['end'], '%Y-%m-%dT%H:%M:%SZ'))
+                                    }
+    return location_dict
+
+
+def get_mesowest_percentiles(stn, variable='air_temp',
+                             percentiles=[0,5,25,50,75,95,100],
+                             start = '010100',
+                             end = '123123',
+                             psource='PERCENTILES2', 
+                             verbose=True):
+    """
+    Station history percentiles for a single station and single variable:
+    Uses a 30 day window centered on the hour.
+    Data at top of each hour of the year, including leap year.
+    DATETIME is set to year 2016 to include leap year, but data is not limited to the year.
+    
+    stn         - A single mesowest station ID.
+    variables   - A single variable to request from the MesoWest
+                  API. See a list of available variables here:
+                  https://synopticlabs.org/api/mesonet/variables/
+    percentiels - A list of percenitles to retieve. Set to 'ALL' if you want to
+                  retrieve all available percentiles.
+    start       - '010100' MMDDHH. Default is begining of the year.
+    end         - '123123' MMDDHH. Default is the end of the year. 
+    psource     - 'PERCENTILES2' or 'PERCENTILES_HRRR'
+
+    """
+    if percentiles == 'ALL':
+        get_percentiles = ''
+    else:
+        get_percentiles = '&percentiles=' + ','.join([str(p) for p in percentiles])
+
+    URL = 'http://api.synopticlabs.org/v2/percentiles?' \
+          + '&token=' + get_MW_token() \
+          + '&start=' + start \
+          + '&end=' + end \
+          + '&vars=' + variable \
+          + '&stid=' + stn \
+          + '&psource=' + psource \
+          + get_percentiles
+    
+    if verbose:
+        print('Retrieving from MesoWest API: %s\n' % URL)
+
+    ## Open URL, and convert JSON to some python-readable format.
+    data = load_json(URL) 
+    
+    if data['SUMMARY']['RESPONSE_CODE'] == 1:
+        d = data['STATION'][0]
+
+        return_this = {'URL': URL,
+                      'STID': d['STID'],
+                      'NAME': d['NAME'],
+                      'ELEVATION': float(d['ELEVATION']),
+                      'LATITUDE': float(d['LATITUDE']),
+                      'LONGITUDE': float(d['LONGITUDE']),
+                      'variable': variable,
+                      'counts': np.array(d['PERCENTILES'][variable+'_counts_1'], dtype='int'),
+                      'DATETIME': np.array([datetime(2016, int(DATE[0:2]), int(DATE[2:4]), int(DATE[4:6])) for DATE in d['PERCENTILES']['date_time']])
+                      }
+        if psource == 'PERCENTILES2':
+            return_this['years'] = np.array(d['PERCENTILES'][variable+'_years_1'], dtype='int')
+
+        all_per = np.array(d['PERCENTILES'][variable+'_set_1'])
+        for i, p in enumerate(data['PERCENTILE_LIST']):
+            return_this['p%02d' % p] = all_per[:,i]
+                
+        return return_this
+    else:
+        # There were errors in the API request
+        if verbose:
+            print('  !! Errors: %s' % URL)
+            print('  !! Reason: %s\n' % data['SUMMARY']['RESPONSE_MESSAGE'])
+        return 'ERROR'
+
+
 if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
@@ -262,11 +384,13 @@ if __name__ == "__main__":
     start = datetime(2016, 9, 25)
     end = datetime(2016, 9, 26)
 
-    timeseries = False
-    radius_basemap = True
-    radius_cartopy = True
+    demo_timeseries = False
+    demo_radius_basemap = False
+    demo_radius_cartopy = False
+    demo_stn_info = False
+    demo_percentiles = True
 
-    if timeseries:
+    if demo_timeseries:
         a = get_mesowest_ts(station, start, end)
 
         temp = a['air_temp']
@@ -291,7 +415,7 @@ if __name__ == "__main__":
         fig.tight_layout()
         
     
-    if radius_basemap:
+    if demo_radius_basemap:
         from mpl_toolkits.basemap import Basemap
         
         a = get_mesowest_radius(start, 'wbb', radius=30, within=30)
@@ -311,7 +435,7 @@ if __name__ == "__main__":
         m.scatter(a['LON'], a['LAT'], c=a['air_temp'], cmap='Spectral_r', latlon=True)
         
 
-    if radius_cartopy:
+    if demo_radius_cartopy:
         import cartopy.crs as ccrs
         import cartopy.feature as cfeature
         
@@ -341,6 +465,14 @@ if __name__ == "__main__":
 
         ax.scatter(a['LON'], a['LAT'], c=a['air_temp'], cmap='Spectral_r')
 
+
+    if demo_stn_info:
+        c = get_mesowest_stninfo(['wbb','ukbkb'])
+        print(c)
+    
+
+    if demo_percentiles:
+        d = get_mesowest_percentiles('WBB')
+        plt.fill_between(d['DATETIME'],d['p00'],d['p100'])
+
     plt.show()
-
-
