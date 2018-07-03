@@ -21,6 +21,7 @@ import urllib3
 
 from get_credentials import get_MW_token
 
+
 # Review MesoWest API documentation for the available variable names:
 #   https://synopticlabs.org/api/mesonet/variables/
 default_vars = 'altimeter,' \
@@ -33,8 +34,12 @@ default_vars = 'altimeter,' \
              + 'relative_humidity,' \
              + 'dew_point_temperature'
 
-def load_json(URL):
+
+def load_json(URL, verbose=True):
     '''Return json data as a dictionary from a URL'''
+    if verbose:
+        print('\nRetrieving from MesoWest API: %s\n' % URL)
+    
     http = urllib3.PoolManager()
     f = http.request('GET', URL)
     return json.loads(f.data)
@@ -85,11 +90,8 @@ def get_mesowest_ts(stationID, sDATE, eDATE,
         + '&obtimezone=' + tz \
         + '&output=json'
 
-    if verbose:
-        print('Retrieving from MesoWest API: %s\n' % URL)
-
     ## Open URL, and convert JSON to some python-readable format.
-    data = load_json(URL)
+    data = load_json(URL, verbose=verbose)
 
     if data['SUMMARY']['RESPONSE_CODE'] == 1:
         # There are no errors in the API Request
@@ -101,8 +103,8 @@ def get_mesowest_ts(stationID, sDATE, eDATE,
         return_this['URL'] = URL
         return_this['NAME'] = str(data['STATION'][0]['NAME'])
         return_this['STID'] = str(data['STATION'][0]['STID'])
-        return_this['LAT'] = float(data['STATION'][0]['LATITUDE'])
-        return_this['LON'] = float(data['STATION'][0]['LONGITUDE'])
+        return_this['LATITUDE'] = float(data['STATION'][0]['LATITUDE'])
+        return_this['LONGITUDE'] = float(data['STATION'][0]['LONGITUDE'])
         return_this['ELEVATION'] = float(data['STATION'][0]['ELEVATION'])
                                    # Note: Elevation is in feet, NOT METERS!
 
@@ -186,19 +188,16 @@ def get_mesowest_radius(DATE, location,
         + '&obtimezone=' + 'UTC' \
         + '&vars=' + variables
 
-    if verbose:
-        print('Retrieving from MesoWest API: %s\n' % URL)
-
     ## Open URL, and convert JSON to some python-readable format.
-    data = load_json(URL)
+    data = load_json(URL, verbose=verbose)
     
     if data['SUMMARY']['RESPONSE_CODE'] == 1:
         # Initiate a dictionary of the data we want to keep
         return_this = {'URL': URL,
                        'NAME': np.array([]),
                        'STID': np.array([]),
-                       'LAT': np.array([]),
-                       'LON': np.array([]),
+                       'LATITUDE': np.array([]),
+                       'LONGITUDE': np.array([]),
                        'ELEVATION': np.array([]),  # Elevation is in feet.
                        'DATETIME': np.array([])
                       }
@@ -211,15 +210,15 @@ def get_mesowest_radius(DATE, location,
             # with a similar name as the variable.
             return_this[str(v) + '_DATETIME'] = np.array([])
         #
-        for i, stn in enumerate(data['STATION']):
+        for stn in data['STATION']:
             # Store basic metadata for each station in the dictionary.
             return_this['NAME'] = np.append(return_this['NAME'], str(stn['NAME']))
             return_this['STID'] = np.append(return_this['STID'], str(stn['STID']))
-            return_this['LAT'] = np.append(return_this['LAT'], float(stn['LATITUDE']))
-            return_this['LON'] = np.append(return_this['LON'], float(stn['LONGITUDE']))
+            return_this['LATITUDE'] = np.append(return_this['LATITUDE'], float(stn['LATITUDE']))
+            return_this['LONGITUDE'] = np.append(return_this['LONGITUDE'], float(stn['LONGITUDE']))
             try:
                 return_this['ELEVATION'] = np.append(return_this['ELEVATION'],
-                                                     float(stn['ELEVATION']))
+                                                     int(stn['ELEVATION']))
             except:
                 return_this['ELEVATION'] = np.append(return_this['ELEVATION'], np.nan)
             #
@@ -281,26 +280,30 @@ def get_mesowest_stninfo(STIDs, extra='', verbose=True):
         + '&stid=' + STIDs \
         + extra
 
-    if verbose:
-        print('Retrieving from MesoWest API: %s\n' % URL)
-
     ## Open URL, and convert JSON to some python-readable format.
-    data = load_json(URL)
+    data = load_json(URL, verbose=verbose)
 
-    ## Store the relavant information in a location dictionary.
-    location_dict = {}
+    if data['SUMMARY']['RESPONSE_CODE'] == 1:
+        ## Store the relevant information in a location dictionary.
+        location_dict = {}
 
-    for i in data['STATION']:
-        location_dict[i['STID']] = {'LATITUDE':float(i['LATITUDE']),
-                                    'LONGITUDE':float(i['LONGITUDE']),
-                                    'NAME':i['NAME'],
-                                    'ELEVATION':int(i['ELEVATION']),
-                                    'TIMEZONE': i['TIMEZONE'],
-                                    'STATUS': i['STATUS'],
-                                    'PERIOD_OF_RECORD': (datetime.strptime(i['PERIOD_OF_RECORD']['start'], '%Y-%m-%dT%H:%M:%SZ'),
-                                                         datetime.strptime(i['PERIOD_OF_RECORD']['end'], '%Y-%m-%dT%H:%M:%SZ'))
-                                    }
-    return location_dict
+        for i in data['STATION']:
+            location_dict[i['STID']] = {'LATITUDE':float(i['LATITUDE']),
+                                        'LONGITUDE':float(i['LONGITUDE']),
+                                        'NAME':i['NAME'],
+                                        'ELEVATION':int(i['ELEVATION']),
+                                        'TIMEZONE': i['TIMEZONE'],
+                                        'STATUS': i['STATUS'],
+                                        'PERIOD_OF_RECORD': (datetime.strptime(i['PERIOD_OF_RECORD']['start'], '%Y-%m-%dT%H:%M:%SZ'),
+                                                             datetime.strptime(i['PERIOD_OF_RECORD']['end'], '%Y-%m-%dT%H:%M:%SZ'))
+                                        }
+        return location_dict
+    else:
+        # There were errors in the API request
+        if verbose:
+            print('  !! Errors: %s' % URL)
+            print('  !! Reason: %s\n' % data['SUMMARY']['RESPONSE_MESSAGE'])
+        return 'ERROR'
 
 
 def get_mesowest_percentiles(stn, variable='air_temp',
@@ -313,19 +316,24 @@ def get_mesowest_percentiles(stn, variable='air_temp',
     Station history percentiles for a single station and single variable:
     Uses a 30 day window centered on the hour.
     Data at top of each hour of the year, including leap year.
-    DATETIME is set to year 2016 to include leap year, but data is not limited to the year.
+    DATETIME returned is set to year 2016 to include leap year, but the data is
+    is not limited to that year.
     
-    stn         - A single mesowest station ID.
-    variables   - A single variable to request from the MesoWest
-                  API. See a list of available variables here:
-                  https://synopticlabs.org/api/mesonet/variables/
-    percentiels - A list of percenitles to retieve. Set to 'ALL' if you want to
-                  retrieve all available percentiles.
-    start       - '010100' MMDDHH. Default is begining of the year.
-    end         - '123123' MMDDHH. Default is the end of the year. 
-    psource     - 'PERCENTILES2' or 'PERCENTILES_HRRR'
+    Input:
+        stn         - A single mesowest station ID.
+        variables   - A single variable to request from the MesoWest
+                      API. See a list of available variables here:
+                      https://synopticlabs.org/api/mesonet/variables/
+        percentiles - A list of percentiles to retrieve. Set to 'ALL' if you want to
+                      retrieve all available percentiles.
+        start       - '010100' MMDDHH. Default is begining of the year.
+        end         - '123123' MMDDHH. Default is the end of the year. 
+        psource     - 'PERCENTILES2' or 'PERCENTILES_HRRR'
 
+    Output:
+        A dictionary of station metadata and percentile information
     """
+
     if percentiles == 'ALL':
         get_percentiles = ''
     else:
@@ -339,25 +347,22 @@ def get_mesowest_percentiles(stn, variable='air_temp',
           + '&stid=' + stn \
           + '&psource=' + psource \
           + get_percentiles
-    
-    if verbose:
-        print('Retrieving from MesoWest API: %s\n' % URL)
 
     ## Open URL, and convert JSON to some python-readable format.
-    data = load_json(URL) 
+    data = load_json(URL, verbose=verbose) 
     
     if data['SUMMARY']['RESPONSE_CODE'] == 1:
         d = data['STATION'][0]
 
         return_this = {'URL': URL,
-                      'STID': d['STID'],
-                      'NAME': d['NAME'],
-                      'ELEVATION': float(d['ELEVATION']),
-                      'LATITUDE': float(d['LATITUDE']),
-                      'LONGITUDE': float(d['LONGITUDE']),
-                      'variable': variable,
-                      'counts': np.array(d['PERCENTILES'][variable+'_counts_1'], dtype='int'),
-                      'DATETIME': np.array([datetime(2016, int(DATE[0:2]), int(DATE[2:4]), int(DATE[4:6])) for DATE in d['PERCENTILES']['date_time']])
+                       'STID': d['STID'],
+                       'NAME': d['NAME'],
+                       'ELEVATION': float(d['ELEVATION']),
+                       'LATITUDE': float(d['LATITUDE']),
+                       'LONGITUDE': float(d['LONGITUDE']),
+                       'variable': variable,
+                       'counts': np.array(d['PERCENTILES'][variable+'_counts_1'], dtype='int'),
+                       'DATETIME': np.array([datetime(2016, int(DATE[0:2]), int(DATE[2:4]), int(DATE[4:6])) for DATE in d['PERCENTILES']['date_time']])
                       }
         if psource == 'PERCENTILES2':
             return_this['years'] = np.array(d['PERCENTILES'][variable+'_years_1'], dtype='int')
@@ -384,10 +389,10 @@ if __name__ == "__main__":
     start = datetime(2016, 9, 25)
     end = datetime(2016, 9, 26)
 
-    demo_timeseries = False
-    demo_radius_basemap = False
-    demo_radius_cartopy = False
-    demo_stn_info = False
+    demo_timeseries = True
+    demo_radius_basemap = True
+    demo_radius_cartopy = True
+    demo_stn_info = True
     demo_percentiles = True
 
     if demo_timeseries:
@@ -421,8 +426,8 @@ if __name__ == "__main__":
         a = get_mesowest_radius(start, 'wbb', radius=30, within=30)
         
         plt.figure(figsize=[10,10])
-        center_lat  = np.nanmean(a['LAT'])
-        center_lon  = np.nanmean(a['LON'])
+        center_lat  = np.nanmean(a['LATITUDE'])
+        center_lon  = np.nanmean(a['LONGITUDE'])
         box = 0.5 # degrees latitude to represent map half-box size 
 
         m = Basemap(projection='cyl',
@@ -432,7 +437,7 @@ if __name__ == "__main__":
         m.drawstates()
         m.drawcounties()
         m.arcgisimage(service='World_Shaded_Relief')
-        m.scatter(a['LON'], a['LAT'], c=a['air_temp'], cmap='Spectral_r', latlon=True)
+        m.scatter(a['LONGITUDE'], a['LATITUDE'], c=a['air_temp'], cmap='Spectral_r', latlon=True)
         
 
     if demo_radius_cartopy:
@@ -440,7 +445,8 @@ if __name__ == "__main__":
         import cartopy.feature as cfeature
         
         import sys
-        sys.path.append('C:\\Users\\blaylockbk\\OneDrive\\Documents\\pyBKB_v3')
+        sys.path.append('C:\\Users\\blaylockbk\\OneDrive\\Documents\\pyBKB_v3') # When on my PC
+        sys.path.append('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3')    # When on CHPC
         from BB_maps.my_cartopy import load_states, load_counties
 
 
@@ -461,9 +467,9 @@ if __name__ == "__main__":
         ax.add_feature(counties, edgecolor='k', linewidth=.3)
         ax.add_feature(states, edgecolor='k', linewidth=1)
 
-        ax.set_extent([a['LON'].min(), a['LON'].max(), a['LAT'].min(), a['LAT'].max()], projection)
+        ax.set_extent([a['LONGITUDE'].min(), a['LONGITUDE'].max(), a['LATITUDE'].min(), a['LATITUDE'].max()], projection)
 
-        ax.scatter(a['LON'], a['LAT'], c=a['air_temp'], cmap='Spectral_r')
+        ax.scatter(a['LONGITUDE'], a['LATITUDE'], c=a['air_temp'], cmap='Spectral_r')
 
 
     if demo_stn_info:

@@ -7,11 +7,3 @@ get_credentials.py
 *.npy
 *.h5
 *.pyc
-
-# Shape files
-*.cpg
-*.dbf
-*.prj
-*.shp
-*.shx
-*.xml
