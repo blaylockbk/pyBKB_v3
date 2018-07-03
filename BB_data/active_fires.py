@@ -5,14 +5,22 @@
 """
 Functions for downloading data related to active wildland fires
 
-    get_fires       - Return dictionary of fires from Active Fire Mapping Program
-    get_incidents   - Return dictionary of fires from InciWeb
+    get_fires                         - Return dictionary of fires from Active
+                                        Fire Mapping Program.
+    get_incidents                     - Return dictionary of fires from
+                                        InciWeb.
+    download_latest_fire_shapefile    - Download point data for fire and smoke.
+    download_fire_perimeter_shapefile - Downloads the current fire perimeters. 
 """
 
 import numpy as np 
 from datetime import datetime, timedelta
 import requests
 from xml.etree import ElementTree
+from urllib.request import urlretrieve
+import os
+import zipfile
+
 
 def get_fires(DATE=datetime.utcnow(),
               min_size=1000, max_size=3000000,
@@ -190,6 +198,46 @@ def get_incidents(inctype="Wildfire",
     return return_this
 
 
+def download_latest_fire_shapefile(TYPE='fire'):
+    """
+    Download active fire shapefiles from the web.
+    Points of active fire.
+    Original Script from '/uufs/chpc.utah.edu/host/gl/oper/mesowest/fire/get_fire.csh'
+    Input:
+        TYPE - 'fire' or 'smoke'
+    """
+    URL = 'http://satepsanone.nesdis.noaa.gov/pub/FIRE/HMS/GIS/'
+    SAVE = '/uufs/chpc.utah.edu/common/home/u0553130/oper/HRRR_fires/fire_shapefiles/'
+    NAME = 'latest_' + TYPE
+    urlretrieve(URL+NAME+".dbf", SAVE+NAME+".dbf")
+    urlretrieve(URL+NAME+".shp", SAVE+NAME+".shp")
+    urlretrieve(URL+NAME+".shx", SAVE+NAME+".shx")
+
+
+def download_fire_perimeter_shapefile(active=True):
+    """
+    Download active fire perimeter shapefiles.
+    
+    Input:
+        active - True  : Download the current active fire perimeters
+                 False : Download all perimeters from the current year
+    """
+    ## Download zip file
+    URL = 'http://rmgsc.cr.usgs.gov/outgoing/GeoMAC/current_year_fire_data/current_year_all_states/'
+    if active:
+        NAME = 'active_perimeters_dd83.zip'
+    else:
+        NAME = 'perimeters_dd83.zip'
+    SAVE = '/uufs/chpc.utah.edu/common/home/u0553130/oper/HRRR_fires/fire_shapefiles/'
+    urlretrieve(URL+NAME, SAVE+NAME)
+    ## Unzip the file
+    zip_ref = zipfile.ZipFile(SAVE+NAME, 'r')
+    zip_ref.extractall(SAVE)
+    zip_ref.close()
+    ## Remove the zip file
+    os.remove(SAVE+NAME)
+
+
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     from mpl_toolkits.basemap import Basemap
@@ -219,4 +267,5 @@ if __name__ == '__main__':
     m.drawstates()
     m.drawcountries()
     m.drawcoastlines()
-    
+
+    plt.show()
