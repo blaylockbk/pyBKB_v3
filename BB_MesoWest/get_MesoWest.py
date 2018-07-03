@@ -3,24 +3,25 @@
 # June 21, 2018
 
 """
-Quickly get data from the MesoWest API.
+Quickly get data from the MesoWest/SynopticLabs API.
     https://synopticlabs.org/api/mesonet/
 
-Get your own MesoWest API key and token from https://mesowest.org/api/signup/
+Requires a MesoWest/SynopticLabs API token. You can get your own token here:
+    https://synopticlabs.org/api/guides/?getstarted
 
-    get_mesowest_ts         - get a time series of data for a single station 
-    get_mesowest_radius     - get data from stations within a radius
-    get_mesowest_stninfo    - get a dictionary of each station's metadata
-    get_mesowest_perceniles - get a series of observed percentiles for a station
+    get_mesowest_ts          - Get a time series of data for a single station. 
+    get_mesowest_radius      - Get lists of data from stations within a radius.
+    get_mesowest_stninfo     - Get a dictionary of each station's metadata
+    get_mesowest_percentiles - Get a series of observed percentiles for a
+                               station OR get an Empirical Cumulative
+                               Distribution for a series of hours.
 """
 
 from datetime import datetime
 import numpy as np
-import json
-import urllib3
+import requests
 
 from get_credentials import get_MW_token
-
 
 # Review MesoWest API documentation for the available variable names:
 #   https://synopticlabs.org/api/mesonet/variables/
@@ -40,9 +41,8 @@ def load_json(URL, verbose=True):
     if verbose:
         print('\nRetrieving from MesoWest API: %s\n' % URL)
     
-    http = urllib3.PoolManager()
-    f = http.request('GET', URL)
-    return json.loads(f.data)
+    f = requests.get(URL)
+    return f.json()
 
 
 def get_mesowest_ts(stationID, sDATE, eDATE,
@@ -100,16 +100,17 @@ def get_mesowest_ts(stationID, sDATE, eDATE,
         return_this = {}
 
         # Station metadata
+        stn = data['STATION'][0]
         return_this['URL'] = URL
-        return_this['NAME'] = str(data['STATION'][0]['NAME'])
-        return_this['STID'] = str(data['STATION'][0]['STID'])
-        return_this['LATITUDE'] = float(data['STATION'][0]['LATITUDE'])
-        return_this['LONGITUDE'] = float(data['STATION'][0]['LONGITUDE'])
-        return_this['ELEVATION'] = float(data['STATION'][0]['ELEVATION'])
+        return_this['NAME'] = str(['NAME'])
+        return_this['STID'] = str(stn['STID'])
+        return_this['LAT'] = float(stn['LATITUDE'])
+        return_this['LON'] = float(stn['LONGITUDE'])
+        return_this['ELEVATION'] = float(stn['ELEVATION'])
                                    # Note: Elevation is in feet, NOT METERS!
 
         # Dynamically create keys in the dictionary for each requested variable
-        for v in data['STATION'][0]['SENSOR_VARIABLES']:
+        for v in stn['SENSOR_VARIABLES']:
             if v == 'date_time':
                 # Convert date strings to a datetime object
                 dates = data["STATION"][0]["OBSERVATIONS"]["date_time"]
@@ -124,10 +125,10 @@ def get_mesowest_ts(stationID, sDATE, eDATE,
                 # has more than one sensor. Deafult, set_num=0, will grab the
                 # first (either _set_1 or _set_1d).
                 key_name = str(v)
-                grab_this_set = np.sort(list(data['STATION'][0]['SENSOR_VARIABLES'][key_name]))[set_num]                
+                grab_this_set = np.sort(list(stn['SENSOR_VARIABLES'][key_name]))[set_num]                
                 if verbose: 
                     print('    Used %s' % grab_this_set)
-                variable_data = data['STATION'][0]['OBSERVATIONS'][grab_this_set]
+                variable_data = stn['OBSERVATIONS'][grab_this_set]
                 return_this[key_name] = np.array(variable_data, dtype=np.float)
         
         return return_this
@@ -196,8 +197,8 @@ def get_mesowest_radius(DATE, location,
         return_this = {'URL': URL,
                        'NAME': np.array([]),
                        'STID': np.array([]),
-                       'LATITUDE': np.array([]),
-                       'LONGITUDE': np.array([]),
+                       'LAT': np.array([]),
+                       'LON': np.array([]),
                        'ELEVATION': np.array([]),  # Elevation is in feet.
                        'DATETIME': np.array([])
                       }
@@ -214,8 +215,8 @@ def get_mesowest_radius(DATE, location,
             # Store basic metadata for each station in the dictionary.
             return_this['NAME'] = np.append(return_this['NAME'], str(stn['NAME']))
             return_this['STID'] = np.append(return_this['STID'], str(stn['STID']))
-            return_this['LATITUDE'] = np.append(return_this['LATITUDE'], float(stn['LATITUDE']))
-            return_this['LONGITUDE'] = np.append(return_this['LONGITUDE'], float(stn['LONGITUDE']))
+            return_this['LAT'] = np.append(return_this['LAT'], float(stn['LATITUDE']))
+            return_this['LON'] = np.append(return_this['LON'], float(stn['LONGITUDE']))
             try:
                 return_this['ELEVATION'] = np.append(return_this['ELEVATION'],
                                                      int(stn['ELEVATION']))
@@ -287,15 +288,15 @@ def get_mesowest_stninfo(STIDs, extra='', verbose=True):
         ## Store the relevant information in a location dictionary.
         location_dict = {}
 
-        for i in data['STATION']:
-            location_dict[i['STID']] = {'LATITUDE':float(i['LATITUDE']),
-                                        'LONGITUDE':float(i['LONGITUDE']),
-                                        'NAME':i['NAME'],
-                                        'ELEVATION':int(i['ELEVATION']),
-                                        'TIMEZONE': i['TIMEZONE'],
-                                        'STATUS': i['STATUS'],
-                                        'PERIOD_OF_RECORD': (datetime.strptime(i['PERIOD_OF_RECORD']['start'], '%Y-%m-%dT%H:%M:%SZ'),
-                                                             datetime.strptime(i['PERIOD_OF_RECORD']['end'], '%Y-%m-%dT%H:%M:%SZ'))
+        for stn in data['STATION']:
+            location_dict[stn['STID']] = {'LAT':float(stn['LATITUDE']),
+                                        'LON':float(stn['LONGITUDE']),
+                                        'NAME':stn['NAME'],
+                                        'ELEVATION':int(stn['ELEVATION']),
+                                        'TIMEZONE': stn['TIMEZONE'],
+                                        'STATUS': stn['STATUS'],
+                                        'PERIOD_OF_RECORD': (datetime.strptime(stn['PERIOD_OF_RECORD']['start'], '%Y-%m-%dT%H:%M:%SZ'),
+                                                             datetime.strptime(stn['PERIOD_OF_RECORD']['end'], '%Y-%m-%dT%H:%M:%SZ'))
                                         }
         return location_dict
     else:
@@ -308,9 +309,10 @@ def get_mesowest_stninfo(STIDs, extra='', verbose=True):
 
 def get_mesowest_percentiles(stn, variable='air_temp',
                              percentiles=[0,5,25,50,75,95,100],
-                             start = '010100',
-                             end = '123123',
-                             psource='PERCENTILES2', 
+                             sDATE = datetime(2016, 1, 1, 0),
+                             eDATE = datetime(2016, 12, 31, 23),
+                             psource='PERCENTILES2',
+                             ECD = False, 
                              verbose=True):
     """
     Station history percentiles for a single station and single variable:
@@ -324,11 +326,21 @@ def get_mesowest_percentiles(stn, variable='air_temp',
         variables   - A single variable to request from the MesoWest
                       API. See a list of available variables here:
                       https://synopticlabs.org/api/mesonet/variables/
-        percentiles - A list of percentiles to retrieve. Set to 'ALL' if you want to
-                      retrieve all available percentiles.
-        start       - '010100' MMDDHH. Default is begining of the year.
-        end         - '123123' MMDDHH. Default is the end of the year. 
+        percentiles - A list of percentiles to retrieve. Set to 'ALL' if you
+                      want to retrieve all available percentiles.
+        start       - Datetime object. Year is 2016 so it includes leap year,
+                      but is otherwise arbitrary. Default is first day of year.
+        end         - Datetime object. Year is 2016 so it includes leap year,
+                      but is otherwise arbitrary. Default is last day of year.
         psource     - 'PERCENTILES2' or 'PERCENTILES_HRRR'
+        ECD         - False: Returns percentiles as separate arrays for each
+                             percentile. i.e. 'p00' is an array of all the 0th
+                             percentiles for the range of dates,
+                             'p50' is the 50th percentile, etc.
+                      True : Returns percentiles as list that contains all
+                             requested percentiles so you can easily plot the
+                             Empirical Cumulative Distribution (ECD). This
+                             makes most sense if you set percentiles='ALL'
 
     Output:
         A dictionary of station metadata and percentile information
@@ -341,8 +353,8 @@ def get_mesowest_percentiles(stn, variable='air_temp',
 
     URL = 'http://api.synopticlabs.org/v2/percentiles?' \
           + '&token=' + get_MW_token() \
-          + '&start=' + start \
-          + '&end=' + end \
+          + '&start=' + sDATE.strftime('%m%d%H') \
+          + '&end=' + eDATE.strftime('%m%d%H') \
           + '&vars=' + variable \
           + '&stid=' + stn \
           + '&psource=' + psource \
@@ -352,24 +364,32 @@ def get_mesowest_percentiles(stn, variable='air_temp',
     data = load_json(URL, verbose=verbose) 
     
     if data['SUMMARY']['RESPONSE_CODE'] == 1:
-        d = data['STATION'][0]
+        stn = data['STATION'][0]
 
         return_this = {'URL': URL,
-                       'STID': d['STID'],
-                       'NAME': d['NAME'],
-                       'ELEVATION': float(d['ELEVATION']),
-                       'LATITUDE': float(d['LATITUDE']),
-                       'LONGITUDE': float(d['LONGITUDE']),
+                       'STID': stn['STID'],
+                       'NAME': stn['NAME'],
+                       'ELEVATION': float(stn['ELEVATION']),
+                       'LAT': float(stn['LATITUDE']),
+                       'LON': float(stn['LONGITUDE']),
                        'variable': variable,
-                       'counts': np.array(d['PERCENTILES'][variable+'_counts_1'], dtype='int'),
-                       'DATETIME': np.array([datetime(2016, int(DATE[0:2]), int(DATE[2:4]), int(DATE[4:6])) for DATE in d['PERCENTILES']['date_time']])
+                       'counts': np.array(stn['PERCENTILES'][variable+'_counts_1'], dtype='int'),
+                       'DATETIME': np.array([datetime(2016, int(DATE[0:2]), int(DATE[2:4]), int(DATE[4:6])) for DATE in stn['PERCENTILES']['date_time']],),
+                       'PERCENTILES_LIST': np.array(data['PERCENTILE_LIST'])
                       }
         if psource == 'PERCENTILES2':
-            return_this['years'] = np.array(d['PERCENTILES'][variable+'_years_1'], dtype='int')
+            return_this['years'] = np.array(stn['PERCENTILES'][variable+'_years_1'], dtype='int')
 
-        all_per = np.array(d['PERCENTILES'][variable+'_set_1'])
-        for i, p in enumerate(data['PERCENTILE_LIST']):
-            return_this['p%02d' % p] = all_per[:,i]
+        if ECD:
+            # Return the Empirical Cumulative Distribution for each DATETIME
+            # Remove the last item from each array, which is the total count 
+            # of observations, which we already returned.
+            return_this['PERCENTILES'] = np.array([i[:-1] for i in stn['PERCENTILES'][variable+'_set_1']])
+        else:
+            # Return arrays of each percentile in the key 'p00', 'p25', etc.
+            all_per = np.array(stn['PERCENTILES'][variable+'_set_1'])
+            for i, p in enumerate(data['PERCENTILE_LIST']):
+                return_this['p%02d' % p] = all_per[:,i]
                 
         return return_this
     else:
@@ -383,6 +403,7 @@ def get_mesowest_percentiles(stn, variable='air_temp',
 if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
+    from matplotlib.dates import DateFormatter
 
     # Get MesoWest data from functin above
     station = 'WBB'
@@ -420,56 +441,48 @@ if __name__ == "__main__":
         fig.tight_layout()
         
     
-    if demo_radius_basemap:
-        from mpl_toolkits.basemap import Basemap
-        
+    if demo_radius_basemap or demo_radius_cartopy:
         a = get_mesowest_radius(start, 'wbb', radius=30, within=30)
         
-        plt.figure(figsize=[10,10])
-        center_lat  = np.nanmean(a['LATITUDE'])
-        center_lon  = np.nanmean(a['LONGITUDE'])
-        box = 0.5 # degrees latitude to represent map half-box size 
+        if demo_radius_basemap:
+            from mpl_toolkits.basemap import Basemap      
+            
+            plt.figure(figsize=[7, 7])
+            center_lat  = np.nanmean(a['LAT'])
+            center_lon  = np.nanmean(a['LON'])
+            box = 0.5 # degrees latitude to represent map half-box size 
 
-        m = Basemap(projection='cyl',
-                    llcrnrlon=center_lon-box, llcrnrlat=center_lat-box,
-                    urcrnrlon=center_lon+box, urcrnrlat=center_lat+box)
+            m = Basemap(projection='cyl',
+                        llcrnrlon=center_lon-box, llcrnrlat=center_lat-box,
+                        urcrnrlon=center_lon+box, urcrnrlat=center_lat+box)
 
-        m.drawstates()
-        m.drawcounties()
-        m.arcgisimage(service='World_Shaded_Relief')
-        m.scatter(a['LONGITUDE'], a['LATITUDE'], c=a['air_temp'], cmap='Spectral_r', latlon=True)
+            m.drawstates()
+            m.drawcounties()
+            m.arcgisimage(service='World_Shaded_Relief')
+            sc = m.scatter(a['LON'], a['LAT'], c=a['air_temp'], cmap='Spectral_r', latlon=True)
+            plt.colorbar(sc, pad=.01, shrink=.8)
         
+        if demo_radius_cartopy:
+            import cartopy.crs as ccrs
+            import cartopy.feature as cfeature
+            
+            import sys
+            sys.path.append('C:\\Users\\blaylockbk\\OneDrive\\Documents\\pyBKB_v3') # When on my PC
+            sys.path.append('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3')    # When on CHPC
+            from BB_maps.my_cartopy import load_states, load_counties
 
-    if demo_radius_cartopy:
-        import cartopy.crs as ccrs
-        import cartopy.feature as cfeature
-        
-        import sys
-        sys.path.append('C:\\Users\\blaylockbk\\OneDrive\\Documents\\pyBKB_v3') # When on my PC
-        sys.path.append('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3')    # When on CHPC
-        from BB_maps.my_cartopy import load_states, load_counties
+            projection = ccrs.PlateCarree()
 
+            states = load_states(projection)
+            counties = load_counties(projection)
 
-        a = get_mesowest_radius(start, 'wbb', radius=30, within=30)
-
-        projection = ccrs.PlateCarree()
-
-        states = load_states(projection)
-        counties = load_counties(projection)
-
-        fig = plt.figure(figsize=[10,10])
-        ax = fig.add_subplot(111, projection=projection)
-        #ax.add_feature(cfeature.COASTLINE.with_scale('50m'))
-        #ax.add_feature(cfeature.BORDERS.with_scale('50m'))
-        #ax.add_feature(cfeature.STATES.with_scale('50m'))
-        #ax.add_feature(cfeature.LAKES.with_scale('50m'), linewidth=2)
-
-        ax.add_feature(counties, edgecolor='k', linewidth=.3)
-        ax.add_feature(states, edgecolor='k', linewidth=1)
-
-        ax.set_extent([a['LONGITUDE'].min(), a['LONGITUDE'].max(), a['LATITUDE'].min(), a['LATITUDE'].max()], projection)
-
-        ax.scatter(a['LONGITUDE'], a['LATITUDE'], c=a['air_temp'], cmap='Spectral_r')
+            fig = plt.figure(figsize=[7, 7])
+            ax = fig.add_subplot(111, projection=projection)
+            ax.add_feature(counties, edgecolor='k', linewidth=.3)
+            ax.add_feature(states, edgecolor='k', linewidth=1)
+            ax.set_extent([a['LON'].min(), a['LON'].max(), a['LAT'].min(), a['LAT'].max()], projection)
+            sc = ax.scatter(a['LON'], a['LAT'], c=a['air_temp'], cmap='Spectral_r')
+            plt.colorbar(sc, pad=.01, shrink=.5)
 
 
     if demo_stn_info:
@@ -478,7 +491,54 @@ if __name__ == "__main__":
     
 
     if demo_percentiles:
-        d = get_mesowest_percentiles('WBB')
+        d = get_mesowest_percentiles('WBB', variable='air_temp')
+
+        # Plot max and min range for every hour (plot everything)
+        fig, ax1 = plt.subplots(figsize=(8, 4))
+        plt.title(d['NAME'], loc='left', fontweight='semibold')
+        plt.title('Hourly Range', loc='right')
         plt.fill_between(d['DATETIME'],d['p00'],d['p100'])
+        plt.ylabel('Air Temperature (C)')
+
+        # Plot a "box and whisker" for a single hour
+        hour = 18
+        fig, ax1 = plt.subplots(figsize=(8, 4))
+        plt.title(d['NAME'], loc='left', fontweight='semibold')
+        plt.title('Hour %02d:00 UTC' % hour, loc='right')
+
+        plt.grid(linestyle='--', alpha=.5)        
+        plt.fill_between(d['DATETIME'][hour::24],d['p05'][hour::24],d['p95'][hour::24],
+                         color=[.6,.6,.6], zorder=5)
+        plt.fill_between(d['DATETIME'][hour::24],d['p25'][hour::24],d['p75'][hour::24],
+                         color=[.3,.3,.3], zorder=5)
+        plt.plot(d['DATETIME'][hour::24],d['p50'][hour::24],
+                 linestyle='--', color=[.6,.6,.6], zorder=5)
+        plt.plot(d['DATETIME'][hour::24],d['p100'][hour::24],
+                 linestyle='--', color=[.6,.6,.6], zorder=5)
+        plt.plot(d['DATETIME'][hour::24],d['p00'][hour::24],
+                 linestyle='--', color=[.6,.6,.6], zorder=5)
+        
+        plt.ylabel('Air Temperature (C)')
+        plt.xlim(d['DATETIME'][0], d['DATETIME'][-1])
+        formatter = DateFormatter('%b-%d')
+        plt.gcf().axes[0].xaxis.set_major_formatter(formatter)
+
+        # Plot an Empirical Cumulative Distribution for a single time
+        e = get_mesowest_percentiles('WBB',
+                                     percentiles='ALL',
+                                     sDATE=datetime(2018, 7, 4, 18),
+                                     eDATE=datetime(2018, 7, 4, 18),
+                                     variable='air_temp',
+                                     ECD=True)        
+        fig, ax1 = plt.subplots(figsize=(6, 4))
+        idx = 0
+        plt.plot(e['PERCENTILES_LIST'], e['PERCENTILES'][idx])
+        plt.title(e['STID'], loc='left', fontweight='semibold')
+        plt.title(e['DATETIME'][idx].strftime('%d %B %H:%M UTC'), loc='right')
+        plt.xticks(e['PERCENTILES_LIST'], [0,'','','','','', 10, 25, 33, 50, 66, 75, 90, '', '', '', '','',100])
+        plt.grid(linestyle='--', alpha=.5)
+        plt.xlim([0,100])
+        plt.xlabel('Percentile')
+        plt.ylabel('Air Temperature')
 
     plt.show()
