@@ -81,7 +81,7 @@ def get_fires(DATE=datetime.utcnow(),
         # Fill the FIRES key with a dictionary of each fire information
         for i, line in enumerate(r.text.split('\r\n')):
             F = line.split('\t')
-            if line=='' or i==0 or int(F[7]) < min_size or int(F[7]) > max_size:
+            if line=='' or i==0 or float(F[7]) < min_size or float(F[7]) > max_size:
                 continue # Skip header, small fires, and large fires
             if AK is False and F[6] == 'Alaska':
                 continue # Skip Alaska
@@ -96,7 +96,7 @@ def get_fires(DATE=datetime.utcnow(),
                                           'start date': datetime.strptime(F[4], '%d-%b-%y') if F[4] != 'Not Reported' else 'Not Reported',
                                           'IMT Type': F[5],
                                           'state': F[6],
-                                          'area': int(F[7]),
+                                          'area': float(F[7]),
                                           'percent contained': F[8],
                                           'expected containment': datetime.strptime(F[9], '%d-%b-%y')  if F[9] != 'Not Reported' else 'Not Reported',
                                           'LAT': float(F[10]),
