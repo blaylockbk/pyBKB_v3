@@ -1,0 +1,14 @@
+name: users-workshop
+channels:
+  - conda-forge
+dependencies:
+  - python=3
+  - numpy
+  - matplotlib
+  - cartopy
+  - basemap
+  - netcdf4
+  - h5py
+  - pygrib
+  - metpy
+  - xarray
