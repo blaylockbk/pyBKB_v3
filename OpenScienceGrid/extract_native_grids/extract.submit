@@ -1,0 +1,16 @@
+universe = vanilla
+
+executable = print_url.py
+arguments = hi
+transfer_input_files = thisfile.txt
+
+output = test_$(process).out
+error = test_$(process).err
+log = test_$(process).log
+
+request_memory = 1GB
+request_disk = 1GB
+request_cpus = 1
+
+queue 3
+

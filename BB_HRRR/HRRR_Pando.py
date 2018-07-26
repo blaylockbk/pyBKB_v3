@@ -145,6 +145,7 @@ def get_hrrr_variable(DATE, variable,
     outfile = '%stemp_%s_%s_f%02d_%s.grib2' % (outDIR, model, DATE.strftime('%Y%m%d%H'), fxx, variable[:3].replace(":", ''))
 
     if verbose is True:
+        print("")
         print(' >> Dowloading tempfile: %s' % outfile)
 
 
@@ -220,7 +221,6 @@ def get_hrrr_variable(DATE, variable,
     if verbose:
         print('GRIB2 File: %s' % grib2file)
         print(' .idx File: %s' % fileidx)
-        print("")
 
 
     ## --- Download Requested Variable ----------------------------------------
