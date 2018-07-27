@@ -3,7 +3,9 @@
 
 Brian Blaylock  
 July 27, 2018  
-https://hub.docker.com/r/blaylockbk/miniconda3_osg/
+
+# My Docker Image
+## https://hub.docker.com/r/blaylockbk/miniconda3_osg/
 
 # How I created my Docker container for the Open Science Grid
 
