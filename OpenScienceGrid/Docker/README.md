@@ -5,10 +5,10 @@ Brian Blaylock
 July 27, 2018  
 
 # My Docker Image
-## https://hub.docker.com/r/blaylockbk/miniconda3_osg/
+This is the container I use on the Open Science Grid  
+> <span style='font-size:25px'>https://hub.docker.com/r/blaylockbk/miniconda3_osg/</big>
 
 # How I created my Docker container for the Open Science Grid
-
 Rather than building from a dockerfile, I created this Docker image interactively.
 
 Preparatory steps:
