@@ -1,5 +1,5 @@
-<img src='../OSG_logo.png' align=right height=150>
-<img src='docker.png' align=right height=150>
+<img src='../OSG_logo.png' align=right height=80>
+<img src='docker.png' align=right height=80>
 
 Brian Blaylock  
 July 27, 2018  
@@ -105,7 +105,7 @@ Back in PowerShell, rename the image:
 
     > docker tag continuumio/minioconda3 blaylockbk/miniconda3_osg
 
-Login to Docker and push the Docker image to your Docker Hub:
+Login to Docker and push the Docker image to Docker Hub:
 
     > docker login
     Username:
@@ -117,16 +117,16 @@ After pushing the Docker image, I contacted OSG support and they did the rest to
 ---
 
 ## Using this container on OSG
-The Docker container is converted to a Singularity container. You can test your script in the container with 
+The people at OSG convert the Docker container to a Singularity container. You can test your script in the container with 
 
-    singularity shell /cvmfs/singularity.opensciencegrid.org/opensciencegrid/osgvo-blaylockbk:latest/
+    singularity shell /cvmfs/singularity.opensciencegrid.org/opensciencegrid/miniconda3_osg:latest/
 
 **Warning: Exit the Singularity container before you submit jobs to `condor`!**
 
 In your submit script, set the following:
 
     requirements = HAS_SINGULARITY == True
-    +SingularityImage = "/cvmfs/singularity.opensciencegrid.org/opensciencegrid/osgvo-blaylockbk:latest/"
+    +SingularityImage = "/cvmfs/singularity.opensciencegrid.org/opensciencegrid/miniconda3_osg:latest/"
 
 ---
 
