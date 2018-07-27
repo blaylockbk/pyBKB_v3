@@ -1,3 +1,6 @@
+<img src='../OSG_logo.png' align=right height=150>
+<img src='docker.png' align=right height=150>
+
 Brian Blaylock  
 July 27, 2018  
 https://hub.docker.com/r/blaylockbk/miniconda3_osg/
