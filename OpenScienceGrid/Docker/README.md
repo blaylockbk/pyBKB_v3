@@ -1,5 +1,5 @@
-<img src='../OSG_logo.png' align=right height=80>
-<img src='docker.png' align=right height=80>
+<img src='../OSG_logo.png' align=right height=110>
+<img src='docker.png' align=right height=110>
 
 Brian Blaylock  
 July 27, 2018  
