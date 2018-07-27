@@ -6,7 +6,7 @@ July 27, 2018
 
 # My Docker Image
 This is the container I use on the Open Science Grid  
-> <span style='font-size:25px'>https://hub.docker.com/r/blaylockbk/miniconda3_osg/</big>
+> https://hub.docker.com/r/blaylockbk/miniconda3_osg/
 
 # How I created my Docker container for the Open Science Grid
 Rather than building from a dockerfile, I created this Docker image interactively.
