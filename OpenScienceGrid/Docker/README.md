@@ -47,6 +47,7 @@ Run some updates and installs:
 Install some python packages with `conda`:
 
     /# conda install -c conda-forge numpy
+    /# conda install -c conda-forge scipy
     /# conda install -c conda-forge matplotlib
     /# conda install -c conda-forge pygrib
     /# conda install -c conda-forge h5py
@@ -121,15 +122,18 @@ After pushing the Docker image, I contacted OSG support and they did the rest to
 ## Using this container on OSG
 The people at OSG convert the Docker container to a Singularity container. You can test your script in the container with 
 
-    singularity shell /cvmfs/singularity.opensciencegrid.org/opensciencegrid/miniconda3_osg:latest/
+    singularity shell /cvmfs/singularity.opensciencegrid.org/blaylockbk/miniconda3_osg:latest/
 
 **Warning: Exit the Singularity container before you submit jobs to `condor`!**
 
 In your submit script, set the following:
 
     requirements = HAS_SINGULARITY == True
-    +SingularityImage = "/cvmfs/singularity.opensciencegrid.org/opensciencegrid/miniconda3_osg:latest/"
+    +SingularityImage = "/cvmfs/singularity.opensciencegrid.org/blaylockbk/miniconda3_osg:latest/"
 
+To access `python` and `conda`, you need to append the `$PATH`. Type this line while in the interactive shell or in your wrapper script when running jobs on OSG:
+
+    $ PATH=/opt/conda/bin:$PATH
 ---
 
 **Note:** When using matplotlib in this image, use the `Agg` backend. 
@@ -137,3 +141,30 @@ In your submit script, set the following:
     import matplotlib as mpl
     mpl.use('Agg')
     import matplotlib.pyplot as plt
+
+---
+
+# Updating the Container
+
+Make sure the image is up to date
+
+    > docker pull continuumio/miniconda3
+
+Attach the image to an ID
+
+    > $ID = docker run -i -t -d continuumio/miniconda3 /bin/bash
+    > docker attach $ID
+
+Make updates inside the image, then exit
+
+Commit the changes to our image:
+
+    > docker commit $ID continuumio/miniconda3
+
+Confirm the changes worked, then exit the image
+
+    > docker run -i -t continuumio/miniconda3 /bin/bash
+
+Push image to Docker Hub:
+
+    > docker push blaylockbk/miniconda3_osg
