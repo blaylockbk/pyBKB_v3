@@ -7,6 +7,7 @@ Requires cURL, wgrib2, and pygrib
 
 Contents:
     get_hrrr_variable()            - Returns dict of single HRRR variable.
+    get_hrrr_latlon()              - Return a dict of the CONUS HRRR grid lat/lon.
 
     pluck_hrrr_point()             - Returns valid time and plucked value from lat/lon
     hrrr_subset                    - Returns a subset of the model domain
@@ -345,8 +346,25 @@ def get_hrrr_variable(DATE, variable,
                 'msg' : np.nan,
                 'URL': grib2file}
 
+
 ###############################################################################
 ###############################################################################
+
+
+def get_hrrr_latlon():
+    """
+    Simply get the HRRR latitude and longitude grid, a file stored locally
+    """
+    import h5py
+    FILE = '/uufs/chpc.utah.edu/common/home/horel-group7/Pando/hrrr/HRRR_latlon.h5'
+    f = h5py.File(FILE)
+    return {'lat': f['latitude'][:],
+            'lon': f['longitude'][:]}
+
+
+###############################################################################
+###############################################################################
+
 
 def pluck_hrrr_point(H, lat=40.771, lon=-111.965, verbose=True, XY_only=False):
     """

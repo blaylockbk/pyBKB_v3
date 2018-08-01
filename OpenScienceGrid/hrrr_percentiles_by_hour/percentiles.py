@@ -38,29 +38,27 @@ def get_HRRR_value(validDATE):
                                fxx=fxx, model='hrrr', field='sfc',
                                value_only=True, verbose=False)
         
-        if Hu['value'] is None or Hv['value'] is None:
+        if np.shape(Hu['value']) == () or np.shape(Hv['value']) == ():
             print("!! WARNING !! COULD NOT GET %s %s f%02d" % (variable, runDATE, fxx))
             return None
-
-        spd = wind_uv_to_spd(Hu['value'], Hv['value'])
-        return spd
+        else:
+            spd = wind_uv_to_spd(Hu['value'], Hv['value'])
+            return spd
     
     else:
         H = get_hrrr_variable(runDATE, variable,
                               fxx=fxx, model='hrrr', field='sfc',
                               value_only=True, verbose=False)
 
-    if H['value'] is None:
-        print("!! WARNING !! COULD NOT GET %s %s f%02d" % (variable, runDATE, fxx))
-
-    # If the data is a nan, then return None. This will be important for filtering.
-    if np.shape(H['value']) == ():
-        return None
-    else:
-        return H['value']
+        if np.shape(H['value']) == ():
+            # If the data is a nan, then return None. This will be important for filtering.
+            print("!! WARNING !! COULD NOT GET %s %s f%02d" % (variable, runDATE, fxx))
+            return None
+        else:
+            return H['value']
 
 
-def stats_save(H, centerDATE, validDATES):
+def stats_save(H, centerDATE, validDATES, SAVEDIR='.'):
     """
     Calculate the statistics for a set of HRRR grids and save them to an HDF5 
     file.
@@ -73,6 +71,7 @@ def stats_save(H, centerDATE, validDATES):
     """
     # Remove empty arrays that may exist. None arrays exist if the HRRR file
     # could not be downloaded from Pando.
+    print("    Date Range", validDATES[0], validDATES[-1])
     print("    Removing empty arrays...", end='')
     count_none = np.sum(1 for x in H if x is None)
     H = list(filter(lambda x: x is not None, H))
@@ -81,7 +80,6 @@ def stats_save(H, centerDATE, validDATES):
     percentage_retrieved = 100*len(H)/float(len(validDATES))
     print("    Retrieved %s/%s expected samples for calculations --- %.2f%% \n" % (len(H), len(validDATES), percentage_retrieved))
     H = np.array(H)
-
 
     # Exit if job didn't download enough.
     if percentage_retrieved < 90:
@@ -110,14 +108,19 @@ def stats_save(H, centerDATE, validDATES):
     print("    Statistics Timer: %s" % stats_timer)
 
 
+    # Save directory
+    if not os.path.exists(SAVEDIR):
+        os.makedirs(SAVEDIR)
+        print('created directory: %s' % SAVEDIR)
+    
     # Create HDF5 file of the data
     print("")
     print("    Saving the HDF5 file...", end='')
     timer = datetime.now()
-    f = h5py.File('OSG_HRRR_%s_m%02d_d%02d_h%02d_f%02d.h5' % (var_str, centerDATE.month, centerDATE.day, centerDATE.hour, fxx), 'w')
+    f = h5py.File('%s/OSG_HRRR_%s_m%02d_d%02d_h%02d_f%02d.h5' % (SAVEDIR, var_str, centerDATE.month, centerDATE.day, centerDATE.hour, fxx), 'w')
     h5_per = f.create_dataset('percentiles', data=np.array(percentiles), compression="gzip", compression_opts=9)
-    h5_count = f.create_dataset('count', data=count)
-    h5_expected = f.create_dataset('expected', data=len(validDATES))
+    h5_count = f.create_dataset('samples', data=count)
+    h5_expected = f.create_dataset('expected samples', data=len(validDATES))
     h5_cores = f.create_dataset('cores', data=use_cpu)
     h5_timer = f.create_dataset('download timer', data=str(download_timer))
     h5_timer = f.create_dataset('statistics timer', data=str(stats_timer))
@@ -136,7 +139,7 @@ def stats_save(H, centerDATE, validDATES):
 
 # Variable to work on. For wind speed calculations, use "UVGRD:10_m".
 #variable = sys.argv[1].replace('-', ' ')
-variable = 'TMP:2-m'.replace('-', ' ')
+variable = 'UVGRD:10-m'.replace('-', ' ')
 var_str = variable.replace(':', '-').replace(' ', '-')
 
 # Date to work on. Input represents the valid date.
@@ -144,21 +147,29 @@ var_str = variable.replace(':', '-').replace(' ', '-')
 #day = int(sys.argv[3])
 #hour = int(sys.argv[4])
 #fxx = int(sys.argv[5])
-month = 10
-day = 8
+month = 7
+day = 15
 hour = 21
 fxx = 0
+SAVEDIR = '/uufs/chpc.utah.edu/common/home/horel-group8/blaylock/HRRR_OSG/hourly31_twoyears/%s' % var_str
 
 # Worker Jobs. The number of jobs each worker should do.
 #jobs_per_worker = int(sys.argv[6])
-jobs_per_worker = 4
+jobs_per_worker = 1
 
 # Window: +/- days to include in the sample
 window = 15
 
 # Archvie Date Range
-sDATE = datetime(2016, 7, 15)
-eDATE = datetime(2018, 7, 15)
+# Archive Range is adjusted by window so that you get consecutive years at date
+# range limits. This is a necessary adjustment for the first 15 days of the
+# archive, else you will include 
+#      July 15-30, 2016 + July 1-30, 2017 + July 1-15, 2018
+# We don't want to span three different season. We only want to get two 
+# different season:
+#      July 15-August 15 2016 + July 15-August 15 2017
+sDATE = datetime(2016, 7, 15) + timedelta(days=window+1)
+eDATE = datetime(2018, 7, 15) + timedelta(days=window+1)
 
 # List percentiles you want
 percentiles = [0, 1, 2, 3, 4, 5, 10, 25, 33, 50, 66, 75, 90, 95, 96, 97, 98, 99, 100]
@@ -179,6 +190,7 @@ for y in years:
     validDATES += a
 
 centerDATE = datetime(2016, month, day, hour)
+
 print('\nJob 1: Working on %s' % (centerDATE.strftime('month: %m\t  day: %d\t hour: %H')))
 print("  --- OSG Worker Requesting %s Samples ---" % len(validDATES))
 print("")
@@ -192,7 +204,8 @@ if len(validDATES) != 0:
             import multiprocessing
             timer = datetime.now()
             cpu_count = multiprocessing.cpu_count()
-            use_cpu = np.minimum(8, cpu_count) # down save download time when using more than 8
+            use_cpu = np.minimum(8, cpu_count) # don't save much download time when using more than 8 cores
+            print("    Using %s CPUs" % use_cpu)
             p = multiprocessing.Pool(use_cpu)
             H = p.map(get_HRRR_value, validDATES)
             p.close()
@@ -209,12 +222,13 @@ if len(validDATES) != 0:
     else:
         timer = datetime.now()
         use_cpu = 1
+        print("    Using %s CPUs" % use_cpu)
         H = list(map(get_HRRR_value, validDATES))
         download_timer = datetime.now() - timer
         print("    Serial Download Timer: %s" % download_timer)
 
     # Compute statistics and save data 
-    stats_save(H, centerDATE, validDATES)
+    stats_save(H, centerDATE, validDATES, SAVEDIR=SAVEDIR)
 
     if jobs_per_worker > 1:
         job = 2
@@ -240,7 +254,7 @@ if len(validDATES) != 0:
                 new_H.append(get_HRRR_value(dd))
 
             # Run stats and save data
-            stats_save(new_H, centerDATE, new_validDATES)
+            stats_save(new_H, centerDATE, new_validDATES, SAVEDIR=SAVEDIR)
             job += 1
 
 
@@ -248,4 +262,4 @@ else:
     print('!!! There were no dates to retrieve. Exit with exit code 74')
     sys.exit(os.EX_IOERR)
 
-
+'''

@@ -21,7 +21,8 @@ from datetime import datetime
 import numpy as np
 import requests
 
-from get_credentials import get_MW_token
+import sys
+from .get_credentials import get_MW_token
 
 # Review MesoWest API documentation for the available variable names:
 #   https://synopticlabs.org/api/mesonet/variables/
