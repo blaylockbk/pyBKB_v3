@@ -160,14 +160,19 @@ jobs_per_worker = 1
 # Window: +/- days to include in the sample
 window = 15
 
-# Archvie Date Range
-# Archive Range is adjusted by window so that you get consecutive years at date
-# range limits. This is a necessary adjustment for the first 15 days of the
-# archive, else you will include 
-#      July 15-30, 2016 + July 1-30, 2017 + July 1-15, 2018
-# We don't want to span three different season. We only want to get two 
-# different season:
-#      July 15-August 15 2016 + July 15-August 15 2017
+# Archvie Data Range: The archive period of record to use, adjusted by window.
+'''
+The archive range is adjusted by the window so that you get consecutive years
+at date range limits. This is a necessary adjustment for the first 15 days 
+(or however long the window is) of the archive period, else the sample will
+jump across three different years. For example, without the window
+adjustment we get 62 samples that spans 3 different years:
+    July 15-30, 2016 + June 30 - July 30, 2017 + June 30 - July 15, 2018
+We don't want to span three different season (see how the sample is split
+15 days in 2016 and 15 days in 2018). We only want to get two 
+different season. With the adjustment we get 62 samples from 2 years:
+    June 30 - July 30 2017 + June 30 - July 30 2017
+'''
 sDATE = datetime(2016, 7, 15) + timedelta(days=window+1)
 eDATE = datetime(2018, 7, 15) + timedelta(days=window+1)
 
@@ -261,5 +266,3 @@ if len(validDATES) != 0:
 else:
     print('!!! There were no dates to retrieve. Exit with exit code 74')
     sys.exit(os.EX_IOERR)
-
-'''
