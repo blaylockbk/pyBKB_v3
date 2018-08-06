@@ -137,7 +137,7 @@ def stats_save(H, centerDATE, validDATES, SAVEDIR='.'):
 
 # ==== Input Controls =========================================================
 
-# Variable to work on. For wind speed calculations, use "UVGRD:10_m".
+# Variable to work on. For wind speed calculations, use "UVGRD:10-m".
 #variable = sys.argv[1].replace('-', ' ')
 variable = 'UVGRD:10-m'.replace('-', ' ')
 var_str = variable.replace(':', '-').replace(' ', '-')
@@ -153,12 +153,12 @@ hour = 21
 fxx = 0
 SAVEDIR = '/uufs/chpc.utah.edu/common/home/horel-group8/blaylock/HRRR_OSG/hourly31_twoyears/%s' % var_str
 
+# Window: +/- days to include in the sample
+window = 15
+
 # Worker Jobs. The number of jobs each worker should do.
 #jobs_per_worker = int(sys.argv[6])
 jobs_per_worker = 1
-
-# Window: +/- days to include in the sample
-window = 15
 
 # Archvie Data Range: The archive period of record to use, adjusted by window.
 '''
