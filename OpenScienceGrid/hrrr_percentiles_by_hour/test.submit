@@ -1,0 +1,20 @@
+universe = vanilla
+requirements = HAS_SINGULARITY == True
++SingularityImage = "/cvmfs/singularity.opensciencegrid.org/blaylockbk/miniconda3_osg:latest"
+
+executable = $(wrapper)
+arguments = $(var) $(month) $(day) $(hour) $(fxx) $(window) $(job_per_worker)
+transfer_input_files = $(python)
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+
+error = ./log/job_err.$(Process)
+output = ./log/job_out.$(Process)
+log = ./log/job_log.$(Process)
+
+request_memory = 4MB
+request_disk = 1MB
+#request_cpus = 1
+
+queue

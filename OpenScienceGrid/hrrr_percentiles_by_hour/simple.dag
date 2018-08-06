@@ -1,0 +1,7 @@
+JOB TMP:2-m.0 test.submit
+VARS TMP:2-m.0 ID="0" var="TMP:2-m" month="1" day="1" hour="0" fxx="0" window="15" jobs_per_worker="1"
+RETRY TMP:2-m.0 10
+
+JOB TMP:2-m.1 test.submit
+VARS TMP:2-m.1 ID="1" var="TMP:2-m" month="1" day="1" hour="1" fxx="0" window="15" jobs_per_worker="1"
+RETRY TMP:2-m.1 10
