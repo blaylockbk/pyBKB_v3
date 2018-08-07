@@ -1,0 +1,20 @@
+universe = vanilla
+requirements = HAS_SINGULARITY == True
++SingularityImage = "/cvmfs/singularity.opensciencegrid.org/blaylockbk/miniconda3_osg:latest"
+
+executable = runthis.sh
+arguments = $(var) $(month) $(day) $(hour) $(fxx) $(window) $(jobs_per_worker)
+transfer_input_files = percentiles.py, BB_HRRR, BB_wx_calcs
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+
+error = ./log/job_$(ID).err
+output = ./log/job_$(ID).out
+log = ./log/job_$(ID).log
+
+request_memory = 6GB
+request_disk = 150MB
+#request_cpus = 1
+
+queue
