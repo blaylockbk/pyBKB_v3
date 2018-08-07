@@ -83,7 +83,7 @@ def stats_save(H, centerDATE, validDATES, SAVEDIR='.'):
 
     # Exit if job didn't download enough.
     if percentage_retrieved < 90:
-        print('!!! The results array collected less than 90%% of the expected samples')
+        print('!!! The results array collected less than 90% of the expected samples')
         print('!!! Exit with exit code 74')
         sys.exit(os.EX_IOERR)
    
@@ -199,7 +199,8 @@ for y in years:
 
 centerDATE = datetime(2016, month, day, hour)
 
-print('\nJob 1: Working on %s' % (centerDATE.strftime('month: %m\t  day: %d\t hour: %H')))
+print("\n", variable)
+print('  Job 1: Working on %s' % (centerDATE.strftime('month: %m\t  day: %d\t hour: %H')))
 print("  --- OSG Worker Requesting %s Samples ---" % len(validDATES))
 print("")
 

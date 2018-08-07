@@ -1,0 +1,60 @@
+JOB TMP:2-m.0 job.submit
+VARS TMP:2-m.0 ID="0000" var="TMP:2-m" month="1" day="1" hour="0" fxx="0" window="15" jobs_per_worker="2"
+RETRY TMP:2-m.0 10
+
+JOB TMP:2-m.1 job.submit
+VARS TMP:2-m.1 ID="0001" var="TMP:2-m" month="1" day="3" hour="0" fxx="0" window="15" jobs_per_worker="2"
+RETRY TMP:2-m.1 10
+
+JOB TMP:2-m.2 job.submit
+VARS TMP:2-m.2 ID="0002" var="TMP:2-m" month="1" day="5" hour="0" fxx="0" window="15" jobs_per_worker="2"
+RETRY TMP:2-m.2 10
+
+JOB TMP:2-m.3 job.submit
+VARS TMP:2-m.3 ID="0003" var="TMP:2-m" month="1" day="7" hour="0" fxx="0" window="15" jobs_per_worker="2"
+RETRY TMP:2-m.3 10
+
+JOB TMP:2-m.4 job.submit
+VARS TMP:2-m.4 ID="0004" var="TMP:2-m" month="1" day="9" hour="0" fxx="0" window="15" jobs_per_worker="2"
+RETRY TMP:2-m.4 10
+
+JOB TMP:2-m.5 job.submit
+VARS TMP:2-m.5 ID="0005" var="TMP:2-m" month="1" day="11" hour="0" fxx="0" window="15" jobs_per_worker="2"
+RETRY TMP:2-m.5 10
+
+JOB TMP:2-m.6 job.submit
+VARS TMP:2-m.6 ID="0006" var="TMP:2-m" month="1" day="13" hour="0" fxx="0" window="15" jobs_per_worker="2"
+RETRY TMP:2-m.6 10
+
+JOB TMP:2-m.7 job.submit
+VARS TMP:2-m.7 ID="0007" var="TMP:2-m" month="1" day="15" hour="0" fxx="0" window="15" jobs_per_worker="2"
+RETRY TMP:2-m.7 10
+
+JOB TMP:2-m.8 job.submit
+VARS TMP:2-m.8 ID="0008" var="TMP:2-m" month="1" day="17" hour="0" fxx="0" window="15" jobs_per_worker="2"
+RETRY TMP:2-m.8 10
+
+JOB TMP:2-m.9 job.submit
+VARS TMP:2-m.9 ID="0009" var="TMP:2-m" month="1" day="19" hour="0" fxx="0" window="15" jobs_per_worker="2"
+RETRY TMP:2-m.9 10
+
+JOB TMP:2-m.10 job.submit
+VARS TMP:2-m.10 ID="0010" var="TMP:2-m" month="1" day="21" hour="0" fxx="0" window="15" jobs_per_worker="2"
+RETRY TMP:2-m.10 10
+
+JOB TMP:2-m.11 job.submit
+VARS TMP:2-m.11 ID="0011" var="TMP:2-m" month="1" day="23" hour="0" fxx="0" window="15" jobs_per_worker="2"
+RETRY TMP:2-m.11 10
+
+JOB TMP:2-m.12 job.submit
+VARS TMP:2-m.12 ID="0012" var="TMP:2-m" month="1" day="25" hour="0" fxx="0" window="15" jobs_per_worker="2"
+RETRY TMP:2-m.12 10
+
+JOB TMP:2-m.13 job.submit
+VARS TMP:2-m.13 ID="0013" var="TMP:2-m" month="1" day="27" hour="0" fxx="0" window="15" jobs_per_worker="2"
+RETRY TMP:2-m.13 10
+
+JOB TMP:2-m.14 job.submit
+VARS TMP:2-m.14 ID="0014" var="TMP:2-m" month="1" day="29" hour="0" fxx="0" window="15" jobs_per_worker="2"
+RETRY TMP:2-m.14 10
+
