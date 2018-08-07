@@ -45,6 +45,8 @@ This script defines what statistics are computed. It currently computes the mean
 The output HDF5 files contain information about the number of cpus used, time spend downloading, time spent doing the calculation, number of samples used, and the date range of the files. It is saved in the following format: 
 > OSG_HRRR_TMP-2-m_m01_d01_h00_f00.h5
 
+>>>**Future Implementation** The HDF5 file is then transferred to the the Pando archive OSG bucket using `rclone`. In order to do this we have to transfer the configuration file `.rclone.conf`.
+
 This script can be tested by supplying appropriate input arguments. For example, the following generates a file for 2 meter temperature on January 1, 0000 UTC for the model analysis (fxx=0) with a 15 day window (31 days) and the job will complete 1 job.
 
     $ python percentiles.py TMP:2-m 1 1 0 0 15 1

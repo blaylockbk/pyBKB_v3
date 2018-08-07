@@ -117,7 +117,8 @@ def stats_save(H, centerDATE, validDATES, SAVEDIR='.'):
     print("")
     print("    Saving the HDF5 file...", end='')
     timer = datetime.now()
-    f = h5py.File('%s/OSG_HRRR_%s_m%02d_d%02d_h%02d_f%02d.h5' % (SAVEDIR, var_str, centerDATE.month, centerDATE.day, centerDATE.hour, fxx), 'w')
+    FILENAME = '%s/OSG_HRRR_%s_m%02d_d%02d_h%02d_f%02d.h5' % (SAVEDIR, var_str, centerDATE.month, centerDATE.day, centerDATE.hour, fxx)
+    f = h5py.File(FILENAME, 'w')
     h5_per = f.create_dataset('percentiles', data=np.array(percentiles), compression="gzip", compression_opts=9)
     h5_count = f.create_dataset('samples', data=count)
     h5_expected = f.create_dataset('expected samples', data=len(validDATES))
@@ -131,6 +132,7 @@ def stats_save(H, centerDATE, validDATES, SAVEDIR='.'):
     h5_endD = f.create_dataset('Ending Date', data=str(validDATES[-1]))
     f.close()
     print('done!')
+    print('    FILE:', FILENAME)
     hdf5_timer = datetime.now() - timer
     print("    HDF5 Timer: %s" % hdf5_timer)
 
