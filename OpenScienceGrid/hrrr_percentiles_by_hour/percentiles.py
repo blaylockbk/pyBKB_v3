@@ -154,8 +154,8 @@ fxx = int(sys.argv[5])
 #hour = 21
 #fxx = 0
 
-#SAVEDIR = '/uufs/chpc.utah.edu/common/home/horel-group8/blaylock/HRRR_OSG/hourly31_twoyears/%s' % var_str
-SAVEDIR = './'
+SAVEDIR = '/uufs/chpc.utah.edu/common/home/horel-group8/blaylock/HRRR_OSG/hourly31_twoyears/%s' % var_str
+#SAVEDIR = './'
 
 # Window: +/- days to include in the sample
 window = int(sys.argv[6])
