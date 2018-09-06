@@ -14,7 +14,7 @@ months = range(1, 13)
 days = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 hours = range(24)
 window = 15
-jobs_per_worker = 1
+jobs_per_worker = 4
 
 print('Creating dagman job scripts for:', variable)
 
@@ -67,14 +67,14 @@ with open("splice_dag.dag", "w") as f:
         if os.path.exists(expected_file_here) is False and os.path.exists(expected_file_stash) is False:
             # If the expected file doesn't exist, write a dagman job for it
             count += 1
-            f.write("JOB %s.%s %s\n" % (var, i, "dagman.submit"))
-            f.write(("VARS %s.%s osg_python_script=\"%s\" "
+            f.write("JOB %s_%s %s\n" % (var, i, "dagman.submit"))
+            f.write(("VARS %s_%s osg_python_script=\"%s\" "
                     "hrrr_s3_script=\"%s\" var=\"%s\" "
                     "month=\"%s\" day=\"%s\" hour=\"%s\" "
                     "fxx=\"%s\"\n") % (var, i, osg_script, hrrr_script,
                                         v.replace(' ', '_'), month,
                                         day, hour, fxx))
-            f.write("RETRY %s.%s 10\n" % (var, i))
+            f.write("RETRY %s_%s 10\n" % (var, i))
 
 print "  - Wrote a new splice_dag.dag file for %s missing files." % count
 

@@ -4,7 +4,7 @@ requirements = HAS_SINGULARITY == True
 
 executable = runthis.sh
 arguments = $(var) $(month) $(day) $(hour) $(fxx) $(window) $(jobs_per_worker)
-transfer_input_files = percentiles.py, BB_HRRR, BB_wx_calcs
+transfer_input_files = percentiles.py, BB_HRRR, BB_wx_calcs, .rclone.conf
 
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT

@@ -17,12 +17,12 @@ variable = 'TMP:2-m'
 
 # The date range (leap year)
 sDATE = datetime(2016, 1, 1)
-eDATE = datetime(2016, 1, 31)
+eDATE = datetime(2017, 1, 1)
 # Which hours and forecasts
-hours = range(1)
-fxx = range(0,1)
+hours = range(24)
+fxx = range(0,19,6)
 window = 15
-jobs_per_worker = 2
+jobs_per_worker = 4
 
 retry = 10
 
@@ -79,10 +79,10 @@ args = [[D.month, D.day, hour, f]
 
 with open("submit.dag", "w") as f:
     for i, (month, day, hour, fxx) in enumerate(args):
-        f.write('JOB %s.%s %s\n' % (var, i, "job.submit"))
-        f.write('VARS %s.%s ID="%04d" var="%s" month="%s" day="%s" hour="%s" fxx="%s" window="%s" jobs_per_worker="%s"\n'
+        f.write('JOB %s_%s %s\n' % (var, i, "job.submit"))
+        f.write('VARS %s_%s ID="%04d" var="%s" month="%s" day="%s" hour="%s" fxx="%s" window="%s" jobs_per_worker="%s"\n'
                  % (var, i, i, var, month, day, hour, fxx, window, jobs_per_worker))
-        f.write('RETRY %s.%s %s\n' % (var, i, retry))
+        f.write('RETRY %s_%s %s\n' % (var, i, retry))
         f.write('\n')
 
 print("  - Wrote a new submit.dag file for %s jobs." % len(args))
