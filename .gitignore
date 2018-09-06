@@ -7,3 +7,5 @@ get_credentials.py
 *.npy
 *.h5
 *.pyc
+
+.rclone.conf

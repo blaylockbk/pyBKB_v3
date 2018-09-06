@@ -58,7 +58,7 @@ def get_HRRR_value(validDATE):
             return H['value']
 
 
-def stats_save(H, centerDATE, validDATES, SAVEDIR='.'):
+def stats_save(H, centerDATE, validDATES, SAVEDIR='.', SEND_TO_PANDO=True):
     """
     Calculate the statistics for a set of HRRR grids and save them to an HDF5 
     file.
@@ -136,6 +136,24 @@ def stats_save(H, centerDATE, validDATES, SAVEDIR='.'):
     hdf5_timer = datetime.now() - timer
     print("    HDF5 Timer: %s" % hdf5_timer)
 
+    # Send HDF5 file to Pando Archive
+    if SEND_TO_PANDO:
+        print("")
+        print("    Sending the HDF5 file to Pando...", end='')
+        timer = datetime.now()
+        
+        rclone = 'rclone --config ./.rclone.conf'
+        S3 = 'horelS3:from_OSG/'
+        PATH = '%s/' % var_str
+        os.system('%s move %s %s' % (rclone, FILENAME, S3+PATH))              
+        
+        print('done!')        
+        hdf5_timer = datetime.now() - timer
+        print("    Send to Pando Timer: %s" % hdf5_timer)
+
+
+
+
 
 # ==== Input Controls =========================================================
 
@@ -145,14 +163,17 @@ variable = sys.argv[1].replace('-', ' ')
 var_str = variable.replace(':', '-').replace(' ', '-')
 
 # Date to work on. Input represents the valid date.
-month = int(sys.argv[2])
-day = int(sys.argv[3])
-hour = int(sys.argv[4])
-fxx = int(sys.argv[5])
-#month = 7
-#day = 15
-#hour = 21
-#fxx = 0
+if sys.argv[2] == 'TEST':
+    month = 7
+    day = 15
+    hour = 21
+    fxx = 0
+else:
+    month = int(sys.argv[2])
+    day = int(sys.argv[3])
+    hour = int(sys.argv[4])
+    fxx = int(sys.argv[5])
+
 
 SAVEDIR = '/uufs/chpc.utah.edu/common/home/horel-group8/blaylock/HRRR_OSG/hourly31_twoyears/%s' % var_str
 #SAVEDIR = './'

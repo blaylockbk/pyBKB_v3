@@ -12,7 +12,7 @@ For example, the December 15th 0000 UTC cumulative distribution used all 0000 UT
 ---
 
 ## Workflow
-Four basic steps are performed:
+Four basic steps are performed by each worker node:
 
 1. The HRRR grids are downloaded from the Pando HRRR Archive.
 2. A set of percentiles is computed with `numpy.percentiles()`.
