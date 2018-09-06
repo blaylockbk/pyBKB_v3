@@ -158,7 +158,7 @@ def stats_save(H, centerDATE, validDATES, SAVEDIR='.', SEND_TO_PANDO=True):
 # ==== Input Controls =========================================================
 
 if sys.argv[1] == 'TEST':
-    variable = 'UVGRD:10-m'.replace('-', ' ')
+    variable = 'TMP:2-m'.replace('-', ' ')
     month = 7
     day = 15
     hour = 21
