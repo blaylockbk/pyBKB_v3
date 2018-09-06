@@ -157,23 +157,23 @@ def stats_save(H, centerDATE, validDATES, SAVEDIR='.', SEND_TO_PANDO=True):
 
 # ==== Input Controls =========================================================
 
-# Variable to work on. For wind speed calculations, use "UVGRD:10-m".
-variable = sys.argv[1].replace('-', ' ')
-#variable = 'UVGRD:10-m'.replace('-', ' ')
-var_str = variable.replace(':', '-').replace(' ', '-')
-
-# Date to work on. Input represents the valid date.
-if sys.argv[2] == 'TEST':
+if sys.argv[1] == 'TEST':
+    variable = 'UVGRD:10-m'.replace('-', ' ')
     month = 7
     day = 15
     hour = 21
     fxx = 0
+
 else:
+    # Variable to work on. For wind speed calculations, use "UVGRD:10-m".
+    variable = sys.argv[1].replace('-', ' ')   
+    # Date to work on. Input represents the valid date.
     month = int(sys.argv[2])
     day = int(sys.argv[3])
     hour = int(sys.argv[4])
     fxx = int(sys.argv[5])
 
+var_str = variable.replace(':', '-').replace(' ', '-')
 
 SAVEDIR = '/uufs/chpc.utah.edu/common/home/horel-group8/blaylock/HRRR_OSG/hourly31_twoyears/%s' % var_str
 #SAVEDIR = './'
