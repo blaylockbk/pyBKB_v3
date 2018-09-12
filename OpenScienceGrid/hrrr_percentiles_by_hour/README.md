@@ -95,6 +95,12 @@ Specify the hardware requirements. This requires some testing and viewing the ta
     request_disk = 150MB
     #request_cpus = 1
 
+Sometimes, jobs run away and run much longer than they are supposed to. The following will hold jobs that are running longer than 20 minutes (1200 seconds) and then resubmit those jobs after 10 minutes (600 seconds).
+
+    periodic_hold = (CurrentTime - JobCurrentStartDate) >= 1200
+    periodic_release = (NumJobStarts < 5) && ((CurrentTime - EnteredCurrentStatus) >= 600)
+
+
 Finally, the queue statement is added to submit the job
 
     queue
@@ -118,6 +124,8 @@ Monitor the progress of the jobs with any of these commands:
     $ condor_q                        # show the batch of jobs
     $ condor_q -nobatch -dag          # shows names of each dag job with name
     $ watch condor_q -nobatch -dag    # ctrl+c to exit watch mode
+
+If for whatever reason you need to remove the jobs, you can resubmit them where you left of with the same `condor_submit_dag` command. DAGMan will use the rescue dag file to only submit those jobs that haven't finished.
 
 ---
 
