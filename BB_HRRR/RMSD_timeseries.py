@@ -69,7 +69,7 @@ for variable in ['TMP:2 m', 'UGRD:10 m', 'VGRD:10 m', 'LTNG:entire', 'REFC:entir
     if not os.path.exists(SAVEDIR):
         os.makedirs(SAVEDIR)
 
-    cpus = 7
+    cpus = 14
     P = multiprocessing.Pool(cpus)
     P.map(graph_this, DATES) 
     P.close()
