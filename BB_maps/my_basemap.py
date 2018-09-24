@@ -78,3 +78,8 @@ def draw_GOES_East_geo(resolution='i', area_thresh=3000):
                    resolution=resolution, area_thresh=area_thresh,
                    llcrnrx=-3626269.5, llcrnry=1584175.9,
                    urcrnrx=1381770.0, urcrnry=4588198.0)
+
+def draw_GLM_map(resolution='i', area_thresh=3000):
+    return Basemap(resolution=resolution, area_thresh=area_thresh,
+                   llcrnrlon=-134, llcrnrlat=-57,
+                   urcrnrlon=-14, urcrnrlat=57)

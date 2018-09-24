@@ -31,17 +31,17 @@ Functions:
 import os 
 import numpy as np 
 from datetime import datetime, timedelta
-from netCDF4 import Dataset
-
-import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap
+import xarray
+import multiprocessing
+import itertools
 
 import sys
 sys.path.append('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/')
 sys.path.append('B:\pyBKB_v3')
 
 
-def get_GLM_files_for_range(sDATE, eDATE):
+
+def get_GLM_files_for_range(sDATE, eDATE, HOURS=range(24)):
     """
     Get all the GLM 'flashes' data file names that occurred within a range of
     DATES
@@ -49,24 +49,32 @@ def get_GLM_files_for_range(sDATE, eDATE):
     Input:
         sDATE - the begining date you want GLM data for
         eDATE - the ending date you want GLM data for (exclusive)
+        HOURS - Separate retreval by hour
     """
     # GOES16 ABI and GLM data is stored on horel-group7 and on Pando
     HG7 = '/uufs/chpc.utah.edu/common/home/horel-group7/Pando/GOES16/GLM-L2-LCFA/'
 
     # List range of dates by hour. Each hour is a directory we need to grab files from.
-    hours = int((eDATE-sDATE).seconds/60/60 + (eDATE-sDATE).days*24 + 1)
-    DATES = [sDATE+timedelta(hours=h) for h in range(hours)]
+    ## Old method: All possible files from all hours
+    #hours = int((eDATE-sDATE).seconds/60/60 + (eDATE-sDATE).days*24 + 1)
+    #DATES = [sDATE+timedelta(hours=h) for h in range(hours)]
+    ## New method: All possible files from hours requested
+    days = (eDATE-sDATE).days
+    DAYS = [sDATE + timedelta(days=d) for d in range(days)]
+    DATES = [datetime(d.year, d.month, d.day, h) for d in DAYS for h in HOURS]
+
+    PATHS = ['%s/%s/' % (HG7, i.strftime('%Y%m%d/%H')) for i in DATES]
 
     GLM = []
-    for i in DATES:
-        DIR = '%s/%s/' % (HG7, i.strftime('%Y%m%d/%H'))
+    for i in PATHS:
         try:
-            for f in os.listdir(DIR):
-                GLM.append(DIR+f)
+            for f in os.listdir(i):
+                GLM.append(i+f)
         except:
-            print('Missing: %s' % DIR)
+            print('Missing: %s' % i)
             pass
 
+    # Filter out the ones not within the requested sDATE and eDATE
     GLM_FILES = list(filter(lambda x: datetime.strptime(x.split('_')[4], 'e%Y%j%H%M%S%f') < eDATE
                             and  datetime.strptime(x.split('_')[4], 'e%Y%j%H%M%S%f') >= sDATE, GLM))
 
@@ -119,6 +127,41 @@ def get_GLM_files_for_ABI(FILE, next_minutes=5):
     return return_this
 
 
+def accumulate_GLM_FAST_MP(inputs):
+    """input - the full path to a GLM directory"""
+    complete, data_type, FILE = inputs
+    G = xarray.open_dataset(FILE)
+    lats = G.variables[data_type+'_lat'].data
+    lons = G.variables[data_type+'_lon'].data
+    if complete%10 == 0:
+        print('%s%%' % complete)
+    return [lats, lons]
+
+
+def accumulate_GLM_FAST(GLM, data_type='flash', verbose=True):
+    """A mutliprocessing (fast) version of accumulate_GLM"""
+    # If GLM is not a dictionary with a key 'Files', then package it as a dict
+    if type(GLM) is not dict:
+        GLM = {'Files':GLM}
+        # Find the earliest and latest file start date if they are not provided
+        FILE_DATES = [datetime.strptime(i.split('_')[3], 's%Y%j%H%M%S%f') for i in GLM['Files']]
+        GLM['Range'] = [min(FILE_DATES), max(FILE_DATES)]
+
+    inputs = [[i/len(GLM['Files'])*100, data_type, f] for i, f in enumerate(GLM['Files'])]
+
+    cpus = np.minimum(len(GLM['Files']), 10)
+    P = multiprocessing.Pool(cpus)
+    results = P.map(accumulate_GLM_FAST_MP, inputs)
+
+    lats = [i[0] for i in results]
+    lons = [i[1] for i in results]
+    lats = list(itertools.chain(*lats))
+    lons = list(itertools.chain(*lons))
+
+    return {'latitude': lats,
+            'longitude': lons,
+            'DATETIME': GLM['Range']}
+
 def accumulate_GLM(GLM, data_type='flash', verbose=True):
     """
     Accumulate all the GLM 'flash' data that occurred within the 5-minute
@@ -153,15 +196,15 @@ def accumulate_GLM(GLM, data_type='flash', verbose=True):
 
     # Read the data
     for i, FILE in enumerate(GLM['Files']):
-        G = Dataset(FILE, 'r')
-        lats = np.append(lats, G.variables[data_type+'_lat'][:])
-        lons = np.append(lons, G.variables[data_type+'_lon'][:])
-        energy = np.append(energy, G.variables[data_type+'_energy'][:])
-        num_per_20_seconds = np.append(num_per_20_seconds, len(G.variables[data_type+'_lat'][:]))
+        G = xarray.open_dataset(FILE)
+        lats = np.append(lats, G.variables[data_type+'_lat'].data)
+        lons = np.append(lons, G.variables[data_type+'_lon'].data)
+        energy = np.append(energy, G.variables[data_type+'_energy'].data)
+        num_per_20_seconds = np.append(num_per_20_seconds, len(G.variables[data_type+'_lat'].data))
         G.close()
         if verbose:
             DATE = datetime.strptime(FILE.split('_')[3], 's%Y%j%H%M%S%f')
-            sys.stdout.write('%.1f%% Complete (%s of %s) : %s\r' % (i/len(GLM['Files'])*100, i, len(GLM['Files']), DATE))
+            sys.stdout.write('\r%.1f%% Complete (%s of %s) : %s' % (i/len(GLM['Files'])*100, i, len(GLM['Files']), DATE))
 
     return {'latitude': lats,
             'longitude': lons,
@@ -171,6 +214,9 @@ def accumulate_GLM(GLM, data_type='flash', verbose=True):
 
 
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.basemap import Basemap
+    
     ## ABI File
     #ABI_FILE = 'OR_ABI-L2-MCMIPC-M3_G16_s20181280332199_e20181280334572_c20181280335091.nc'
     ABI = 'OR_ABI-L2-MCMIPC-M3_G16_s20181282357201_e20181282359574_c20181290000075.nc'

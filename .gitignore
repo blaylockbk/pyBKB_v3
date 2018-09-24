@@ -9,3 +9,5 @@ get_credentials.py
 *.pyc
 
 .rclone.conf
+
+figs/
