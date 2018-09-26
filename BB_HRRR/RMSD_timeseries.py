@@ -21,7 +21,7 @@ from BB_maps.my_basemap import draw_HRRR_map
 m = draw_HRRR_map()
 
 import matplotlib as mpl
-mpl.rcParams['figure.figsize'] = [15,15]
+mpl.rcParams['figure.figsize'] = [12,12]
 mpl.rcParams['figure.titlesize'] = 15
 mpl.rcParams['figure.subplot.wspace'] = 0.05
 mpl.rcParams['figure.subplot.hspace'] = 0.05
@@ -33,7 +33,7 @@ mpl.rcParams['savefig.dpi'] = 100
 
 def graph_this(DATE):
     img_name = SAVEDIR + 'HRRR_RMSD-%s_%s' % (variable.replace(':', '-').replace(' ', '-'), DATE.strftime('%Y%m%d-%H%M'))
-    if not os.path.exists(img_name):
+    if not os.path.exists(img_name+'.png'):
         if variable in ['LTNG:entire', 'APCP:surface', 'WIND:10 m']:
             # These variables are hourly values and don't have an analysis value
             FORECASTS = range(1,19) 
@@ -59,8 +59,8 @@ def graph_this(DATE):
 
         plt.close()
     
-sDATE = datetime(2018, 6, 1)
-eDATE = datetime(2018, 6, 10)
+sDATE = datetime(2018, 6, 12)
+eDATE = datetime(2018, 8, 12)
 num_hours = (eDATE-sDATE).days*24 + int((eDATE-sDATE).seconds/60/60)
 DATES = [sDATE + timedelta(hours=h) for h in range(num_hours)]
 
@@ -69,7 +69,7 @@ for variable in ['TMP:2 m', 'UGRD:10 m', 'VGRD:10 m', 'LTNG:entire', 'REFC:entir
     if not os.path.exists(SAVEDIR):
         os.makedirs(SAVEDIR)
 
-    cpus = 14
+    cpus = 10
     P = multiprocessing.Pool(cpus)
     P.map(graph_this, DATES) 
     P.close()
