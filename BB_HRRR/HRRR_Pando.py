@@ -345,16 +345,18 @@ def get_hrrr_variable(DATE, variable,
 ###############################################################################
 
 
-def get_hrrr_latlon():
+def get_hrrr_latlon(DICT=True):
     """
     Simply get the HRRR latitude and longitude grid, a file stored locally
     """
     import h5py
     FILE = '/uufs/chpc.utah.edu/common/home/horel-group7/Pando/hrrr/HRRR_latlon.h5'
     f = h5py.File(FILE)
-    return {'lat': f['latitude'][:],
-            'lon': f['longitude'][:]}
-
+    if DICT:
+        return {'lat': f['latitude'][:],
+                'lon': f['longitude'][:]}
+    else:
+        return f['latitude'][:], f['longitude'][:]
 
 ###############################################################################
 ###############################################################################

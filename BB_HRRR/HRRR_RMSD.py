@@ -88,7 +88,7 @@ def RMSD_range_MP(inputs):
 
 def RMSD_range(sDATE, eDATE, variable, HOURS=[0], FORECASTS=range(19)):
     """
-    Compute the RMSD for a range of dates for a given hour
+    Compute the RMSD for a range of dates at a given hour.
 
     Inputs:
         sDATE     - Datetime start(valid Date)
