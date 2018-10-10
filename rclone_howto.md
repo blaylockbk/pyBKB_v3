@@ -45,7 +45,7 @@ You will use the remote you just set up to access NOAA's public buckets on Amazo
 |GOES16| `noaa-goes16`| [link](https://registry.opendata.aws/noaa-goes/) |
 |NEXRAD| `noaa-nexrad-level2`| [link](https://registry.opendata.aws/noaa-nexrad/) |
 
-You access the bucket contents by typing the command `rclone [command and options] [remote name]:[bucket name]`. Documentation for all the commands and options can be found on the [rclone](https://rclone.org/) website
+You access the bucket contents by typing the command `rclone [command and options] [remote name]:[bucket name]`. Documentation for all the commands and options can be found on the [rclone](https://rclone.org/) website.
 
 ### List directories
 
@@ -59,7 +59,7 @@ You access the bucket contents by typing the command `rclone [command and option
 
 # How to use rclone with Python
 
-I like to use `rclone` to list and access the files with Python.
+I like to use `rclone` to list and access the files within my Python scripts.
 
 To run a basic `rclone` command within Python, you might use `os.system()`
 
@@ -80,7 +80,7 @@ If you want to capture the ouput, such as file names, you might consider using `
     files = files.split('\n')
     files.remove('')
 
-Alternatively, you can use `subprocess.run()` like this:
+Alternatively, you can use `subprocess.run()`.
 
      a = subprocess.run(['echo','hi'], stdout=subprocess.PIPE).stdout.decode().split('\n')
      a.remove('')
