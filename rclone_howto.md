@@ -38,12 +38,14 @@ The prompt will ask you if the following is correct:
 Exit the setup.
 
 ## 3. `rclone` access to public buckets
-You will use the remote you just set up to access NOAA's public buckets on Amazon Web Services S3. Below are the names of some of NOAA's public buckets. You access the bucket contents by typing the command `rclone [command and options] [remote name]:[bucket name]`.
+You will use the remote you just set up to access NOAA's public buckets on Amazon Web Services S3. Below are the names of some of NOAA's public buckets. 
 
 |Data| Bucket Name| Documentation |
 |--|--|--|
 |GOES16| `noaa-goes16`| [link](https://registry.opendata.aws/noaa-goes/) |
 |NEXRAD| `noaa-nexrad-level2`| [link](https://registry.opendata.aws/noaa-nexrad/) |
+
+You access the bucket contents by typing the command `rclone [command and options] [remote name]:[bucket name]`. Documentation for all the commands and options can be found on the [rclone](https://rclone.org/) website
 
 ### List directories
 
