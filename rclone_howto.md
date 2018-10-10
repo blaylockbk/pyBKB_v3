@@ -38,7 +38,7 @@ The prompt will ask you if the following is correct:
 Exit the setup.
 
 ## 3. `rclone` access to public buckets
-You will use the remote you just set up to access NOAA's public buckets on Amazon Web Services S3. Below are the names of some of NOAA's public buckets.
+You will use the remote you just set up to access NOAA's public buckets on Amazon Web Services S3. Below are the names of some of NOAA's public buckets. You access the bucket contents by typing the command `rclone [command and options] [remote name]:[bucket name]`.
 
 |Data| Bucket Name| Documentation |
 |--|--|--|
