@@ -53,4 +53,35 @@ You will use the remote you just set up to access NOAA's public buckets on Amazo
 
     rclone copy publicAWS:noaa-goes16/ABI-L2-MCMIPC/2018/283/00/OR_ABI-L2-MCMIPC-M3_G16_s20182830057203_e20182830059576_c20182830100076.nc ./
 
+---
+
+# How to use rclone with Python
+
+I like to use `rclone` to list and access the files with Python.
+
+To run a basic `rclone` command within Python, you might use `os.system()`
+
+    import os
+    os.system('rclone copy publicAWS:noaa-goes16/.../.../etc. ./this_path_on_my_machine/')
+
+If you want to capture the ouput, such as file names, you might consider using `subprocess`.
+
+    import subprocess
+    
+    # Get output from rclone command
+    files = subprocess.check_output('rclone lsd goes16AWS:noaa-goes16', shell=True)
+
+    # Change type from 'bytes' to 'string'
+    files = files.decode()
+
+    # Split files based on the new line and remove the empty item at the end.
+    files = files.split('\n')
+    files.remove('')
+
+Alternatively, you can use `subprocess.run()` like this:
+
+     a = subprocess.run(['echo','hi'], stdout=subprocess.PIPE).stdout.decode().split('\n')
+     a.remove('')
+
+
 
