@@ -55,7 +55,8 @@ You access the bucket contents by typing the command `rclone [command and option
 
     rclone copy publicAWS:noaa-goes16/ABI-L2-MCMIPC/2018/283/00/OR_ABI-L2-MCMIPC-M3_G16_s20182830057203_e20182830059576_c20182830100076.nc ./
 
----
+
+<br><br>
 
 # How to use rclone with Python
 
@@ -84,6 +85,4 @@ Alternatively, you can use `subprocess.run()`.
 
      a = subprocess.run(['echo','hi'], stdout=subprocess.PIPE).stdout.decode().split('\n')
      a.remove('')
-
-
 
