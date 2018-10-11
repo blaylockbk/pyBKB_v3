@@ -9,6 +9,8 @@ Quickly get data from the MesoWest/SynopticLabs API.
 Requires a MesoWest/SynopticLabs API token. You can get your own token here:
     https://synopticlabs.org/api/guides/?getstarted
 
+    load_json                - Basic function to load json 
+    get_network_ids          - Return ID numbers for list of network shortnames.
     get_mesowest_ts          - Get a time series of data for a single station. 
     get_mesowest_radius      - Get lists of data from stations within a radius.
     get_mesowest_stninfo     - Get a dictionary of each station's metadata
@@ -45,6 +47,30 @@ def load_json(URL, verbose=True):
     f = requests.get(URL)
     return f.json()
 
+def get_network_ids(network_names='nws/faa,raws', verbose=True):
+    """
+    Return the network ID numbers for a list of network shortnames.
+    
+    Input:
+        network_shortname - A comma separated list of network short names. 
+                            Default is 'nws,raws'
+    """
+    URL = 'https://api.synopticlabs.org/v2/networks?' \
+        + '&token=' + get_MW_token() \
+        + '&shortname=' + network_names
+
+    data = load_json(URL, verbose=verbose)
+
+    if data['SUMMARY']['RESPONSE_CODE'] == 1:
+        return ','.join([i['ID'] for i in data['MNET']])
+
+    else:
+        # There were errors in the API request
+        if verbose:
+            print('  !! Errors: %s' % URL)
+            print('  !! Reason: %s\n' % data['SUMMARY']['RESPONSE_MESSAGE'])
+        return 'ERROR'
+    
 
 def get_mesowest_ts(stationID, sDATE, eDATE,
                     variables=default_vars, tz='UTC', set_num=0, verbose=True):
@@ -144,7 +170,9 @@ def get_mesowest_ts(stationID, sDATE, eDATE,
 
 def get_mesowest_radius(DATE, location,
                         radius=30, within=30,
-                        variables=default_vars, set_num=0,
+                        variables=default_vars,
+                        extra = '',
+                        set_num=0,
                         verbose=True):
     """
     Get MesoWest stations within a radius
@@ -156,13 +184,22 @@ def get_mesowest_radius(DATE, location,
         DATE      - datetime object of the time of interest in UTC
         location  - String of a MW station ID or string of a comma-separated
                     lat,lon as the center (i.e. 'WBB' or '40.0,-111.5')
-        radius    - Distance from center location in MILES. Default is 30 miles.
-        within    - Minutes, plus or minus, the DATE to get for. Deafult 
-                    will get all observations made 30 minutes before and
+                    HACK: If [location=None] then the radius limit is
+                          disregarded and returns all stations. Therefore, it
+                          is best used in congunction with the [extra=&...]
+                          argument.
+        radius    - Distance from center location in *MILES*.
+                    Default is 30 miles.
+        within    - *MINUTES*, plus or minus, the DATE to get for.
+                    Default returns all observations made 30 minutes before and
                     30 minutes after the requested DATE.
         variables - String of variables you want to request from the MesoWest
                     API, separated by commas. See a list of available variables
                     here: https://synopticlabs.org/api/mesonet/variables/
+        extra     - Any extra conditions or filters. Refer to the synoptic API
+                    documentation for more info. String should be proceeded by
+                    a "&". For example, to get stations within a specific 
+                    set of networks, use [extra='&network=1,2']
         set_num   - Some stations have multiple sensors and are stored in 
                     a different 'set'. By default, grab the first set. You 
                     can change this integer if you know your staion has more
@@ -177,18 +214,34 @@ def get_mesowest_radius(DATE, location,
         A dictionary of data at each available station.
     """
     ## Some basic checks
-    assert isinstance(location, str), 'location must be a string'
+    assert isinstance(location, (str,type(None))), 'location must be a string or None'
     assert isinstance(DATE, datetime), 'DATE must be a datetime'
     assert set_num >=0 and isinstance(set_num, int), "set_num must be a positive integer"
 
     ## Build the MesoWest API request URL
-    URL = 'http://api.mesowest.net/v2/stations/nearesttime?' \
-        + '&token=' + get_MW_token() \
-        + '&attime=' + DATE.strftime("%Y%m%d%H%M") \
-        + '&within=' + str(within) \
-        + '&radius=' + '%s,%s' % (location, radius) \
-        + '&obtimezone=' + 'UTC' \
-        + '&vars=' + variables
+    if location is None:
+        if extra == '':
+            if verbose:
+                    print('  !! Errors:')
+                    print("  !! Reason: I don't think you really want to return everything.")
+                    print("             Refine your request using the 'extra=&...' argument")
+            return 'ERROR'
+        URL = 'http://api.mesowest.net/v2/stations/nearesttime?' \
+            + '&token=' + get_MW_token() \
+            + '&attime=' + DATE.strftime("%Y%m%d%H%M") \
+            + '&within=' + str(within) \
+            + '&obtimezone=' + 'UTC' \
+            + '&vars=' + variables \
+            + extra
+    else:
+        URL = 'http://api.mesowest.net/v2/stations/nearesttime?' \
+            + '&token=' + get_MW_token() \
+            + '&attime=' + DATE.strftime("%Y%m%d%H%M") \
+            + '&within=' + str(within) \
+            + '&radius=' + '%s,%s' % (location, radius) \
+            + '&obtimezone=' + 'UTC' \
+            + '&vars=' + variables \
+            + extra
 
     ## Open URL, and convert JSON to some python-readable format.
     data = load_json(URL, verbose=verbose)

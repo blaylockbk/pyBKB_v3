@@ -368,6 +368,7 @@ def pluck_hrrr_point(H, lat=40.771, lon=-111.965, verbose=True, XY_only=False):
     
     Input:
         H       - A dictionary as returned from get_hrrr_variable()
+                  NOTE: Requires the lat and lon keys in the dictionary.
         lat     - The desired latitude location you want. Default is KSLC
         lon     - The desired longitude location you want. Default is KSLC
         XY_only - False: return the valid date and the value at the point
