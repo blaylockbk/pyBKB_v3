@@ -254,7 +254,7 @@ def get_mesowest_radius(DATE, location,
                        'LAT': np.array([]),
                        'LON': np.array([]),
                        'ELEVATION': np.array([]),  # Elevation is in feet.
-                       'DATETIME': np.array([])
+                       'DATETIME': DATE
                       }
         #
         # Create a new key for each possible variable

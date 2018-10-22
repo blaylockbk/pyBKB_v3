@@ -270,7 +270,10 @@ def get_hrrr_variable(DATE, variable,
 
         ## 3) Get data from the file, using pygrib and return what we want to use
         grbs = pygrib.open(outfile)
-        
+        if verbose:
+            print('  Run Date: %s F%02d' % (grbs[1].analDate.strftime('%Y-%m-%d %H:%M UTC'), fxx))
+            print('Valid Date: %s' % grbs[1].validDate.strftime('%Y-%m-%d %H:%M UTC'))
+
         # Note: Returning only the variable value is a bit faster than returning 
         #       the variable value with the lat/lon and other details. You can
         #       specify this when you call the function.
