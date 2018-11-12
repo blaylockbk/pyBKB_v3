@@ -960,7 +960,7 @@ def LocDic_hrrr_hovmoller(sDATE, eDATE, location_dic,
     #                              (otherwise it'll cut off the last row and column)
     hovmoller = {'fxx_2d':np.array([np.ones(num)*i for i in forecasts]),
                  'valid_2d':np.array([data[0]['DATETIME'] for i in forecasts]),
-                 'fxx_1d+':forecasts+[forecasts[-1]+1],
+                 'fxx_1d+':list(forecasts)+[forecasts[-1]+1],
                  'valid_1d+':np.append(dates, dates[-1]+timedelta(hours=1))}
 
     if area_stats is False:

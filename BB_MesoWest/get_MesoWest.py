@@ -343,8 +343,8 @@ def get_mesowest_stninfo(STIDs, extra='', verbose=True):
         location_dict = {}
 
         for stn in data['STATION']:
-            location_dict[stn['STID']] = {'LAT':float(stn['LATITUDE']),
-                                        'LON':float(stn['LONGITUDE']),
+            location_dict[stn['STID']] = {'latitude':float(stn['LATITUDE']),
+                                        'longitude':float(stn['LONGITUDE']),
                                         'NAME':stn['NAME'],
                                         'ELEVATION':int(stn['ELEVATION']),
                                         'TIMEZONE': stn['TIMEZONE'],
