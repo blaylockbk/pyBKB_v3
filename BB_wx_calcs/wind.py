@@ -30,7 +30,7 @@ def wind_uv_to_dir(U, V):
     (by % 360)
     Inputs:
       U = west / east direction(wind from the west is positive, from the east is negative)
-      V = south / noth direction(wind from the south is positive, from the north is negative)
+      V = south / north direction(wind from the south is positive, from the north is negative)
     """
     WDIR = (270 - np.rad2deg(np.arctan2(V, U))) % 360
     return WDIR
@@ -47,6 +47,7 @@ def wind_uv_to_spd(U, V):
         WSPD = np.sqrt(np.square(U) + np.square(V))
     except:
         # why didn't numpy work???
+        print('huh, numpy did not work, so do the alternative math')
         WSPD = (U*U + V*V)**(.5)
     return WSPD
 
