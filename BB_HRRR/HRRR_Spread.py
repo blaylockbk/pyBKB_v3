@@ -44,6 +44,30 @@ def spread(validDATE, variable, fxx=range(0,19), verbose=True):
     
     return spread
 
+# =============================================================================
+# =============================================================================
+
+def get_HRRR_value(validDATE, variable, fxx):
+    """
+    Get HRRR data. Return just the value, not the latitude and longitude.
+    If data is np.nan, then return None, i.e. the shape of the data is ().
+    This makes it possible to filter out the None values later.
+    """
+    runDATE = validDATE - timedelta(hours=fxx)
+    
+    if variable.split(':')[0] == 'UVGRD':
+        H = get_hrrr_variable(runDATE, variable, fxx=fxx, verbose=False)['SPEED']
+    else:
+        H = get_hrrr_variable(runDATE, variable, fxx=fxx, verbose=False)['value']
+    
+    if np.shape(H) == ():
+        # Then the data is a nan. Return None so it can be filtered out.
+        print("!! WARNING !! COULD NOT GET %s %s f%02d" % (variable, runDATE, fxx))
+        return None
+    else:
+        return H
+
+
 def mean_spread_MP(inputs):
     """
     Each processor works on a separate validDATE
@@ -51,22 +75,27 @@ def mean_spread_MP(inputs):
     i, D, variable, fxx, verbose = inputs
 
     if verbose:
-        msg = 'Progress: %02d%% (%s of %s) complete ----> Downloading %s\r' % ((i[0]+1)/i[1]*100, i[0]+1, i[1], D.strftime('%d %b %Y %H:%M UTC'))
+        msg = 'Progress: %02d%% (%s of %s) complete ----> Downloading %s, %s\r' % ((i[0]+1)/i[1]*100, i[0]+1, i[1], D.strftime('%d %b %Y %H:%M UTC'), variable)
         sys.stdout.write(msg)
         sys.stdout.flush()
         print(msg)
-    # Get all forecasts for the validDATE, and filter out nan values (size of array is greater than 1).
-    if variable.split(':')[0] == 'UVGRD':
-        HH = [get_hrrr_variable(D-timedelta(hours=f), variable, fxx=f, verbose=False)['SPEED'] for f in fxx]
-        HH = list(filter(lambda x: np.size(HH) > 1, HH))
-    else:
-        HH = [get_hrrr_variable(D-timedelta(hours=f), variable, fxx=f, verbose=False)['value'] for f in fxx]
-        HH = list(filter(lambda x: np.size(HH) > 1, HH))
+
+    # Get all forecasts for the validDATE.
+    HH = [get_HRRR_value(D, variable, f) for f in fxx]
+    # Count None values and Filter out None values
+    count_none = np.sum(1 for x in HH if x is None)
+    HH = np.array(list(filter(lambda x: x is not None, HH)))
+    if count_none > 0:
+        print(" WARNING: %s had None values" % D)
+        print("    Counted %s None values" % count_none)
+        percentage_retrieved = 100*len(HH)/float(len(fxx))
+        print("    Retrieved %s/%s expected samples for calculations --- %.2f%% \n" % (len(HH), len(fxx), percentage_retrieved))
+
     # Compute the variance for all forecasts
     var = np.var(HH, ddof=1, axis=0) # ddof=1 because we want the sample variance
     
     return var
-    
+
 
 def mean_spread(validDATES, variable='TMP:2 m', fxx=range(0,19), verbose=True, reduce_CPUs=2):
     """

@@ -48,32 +48,32 @@ mU = draw_centermap(39.5, -111.6, (3.2,3.2))    # Utah
 
 # Variable constants
 VARS = {'TMP:2 m':{'cmap':'magma',
-                    'vmax':4,
+                    'vmax':2.5,
                     'vmin':0,
                     'label':'2 m Temperature',
                     'units':'C'},
         'DPT:2 m':{'cmap':'magma',
-                    'vmax':4,
+                    'vmax':5,
                     'vmin':0,
                     'label':'2 m Dew Point',
                     'units':'C'},
-        'UVGRD:10 m':{'cmap':'magma',
-                       'vmax':5,
-                       'vmin':0,
-                       'label':'10 m Wind Speed',
-                       'units':r'm s$\mathregular{^{-1}}$'},
+        'GUST:surface':{'cmap':'magma',
+                     'vmax':3.5,
+                     'vmin':0,
+                     'label':'Surface Wind Gust',
+                     'units':r'm s$\mathregular{^{-1}}$'},
         'UGRD:10 m':{'cmap':'magma',
-                      'vmax':5,
+                      'vmax':3.5,
                       'vmin':0,
                       'label':'10 m U Wind Component',
                       'units':r'm s$\mathregular{^{-1}}$'},
         'VGRD:10 m':{'cmap':'magma',
-                      'vmax':5,
+                      'vmax':3.5,
                       'vmin':0,
                       'label':'10 m V Wind Component',
                       'units':r'm s$\mathregular{^{-1}}$'},                       
         'REFC:entire':{'cmap':'magma',
-                       'vmax':25,
+                       'vmax':20,
                        'vmin':0,
                        'label':'Simulated Composite Reflectivity',
                        'units':'dBZ'},
@@ -109,7 +109,7 @@ def make_plots(MAP, data, variable, sDATE, eDATE, hour, fxx, save=True):
     plt.clf()
     MAP.pcolormesh(lon, lat, data,
                    cmap=VARS[variable]['cmap'],
-                   vmin=0,
+                   vmin=0, vmax=VARS[variable]['vmax'],
                    latlon=True)
     MAP.drawcoastlines(linewidth=.3, color='w')
     MAP.drawcountries(linewidth=.3, color='w')
@@ -118,15 +118,13 @@ def make_plots(MAP, data, variable, sDATE, eDATE, hour, fxx, save=True):
     plt.title('HRRR %s' % variable, fontweight='bold', loc='left')
     plt.title('Start: %s\n End: %s' % (sDATE.strftime('%d %b %Y %H:%M UTC'),
                                        eDATE.strftime('%d %b %Y %H:%M UTC')), loc='right', fontsize=10)
-    if MAP == m:
-        plt.title('Hour: %s\nFXX: %s' % (hour, fxx))
-    else:
-        plt.ylabel('Hour: %s\nFXX: %s' % (hour, fxx))
+    
+    plt.title('%02d' % (hour))
         
     if MAP == mU:
         MAP.drawcounties(linewidth=.2, color='lightgrey')
 
-    cb = plt.colorbar(orientation='horizontal', pad=.01, shrink=.8)
+    cb = plt.colorbar(orientation='horizontal', pad=.01, shrink=.8, extend='max')
     cb.set_label('Mean Model Spread\n%s (%s)' % (VARS[variable]['label'], VARS[variable]['units']))
     
     SAVEDIR = '/uufs/chpc.utah.edu/common/home/u0553130/public_html/PhD/HRRR_Spread/Hourly_%s-%s/%s/%s/' % (sDATE.strftime('%b%Y'), eDATE.strftime('%b%Y'), variable.split(':')[0], domain)
@@ -139,22 +137,22 @@ def make_plots(MAP, data, variable, sDATE, eDATE, hour, fxx, save=True):
     plt.savefig(SAVEDIR+'%s_h%02d' % (variable.replace(':', '-').replace(' ', '-'), hour))
 
 
+for variable in [i for i in VARS.keys()]:
+#for variable in [i for i in VARS.keys() if i != 'TMP:2 m' and i != 'DPT:2 m']:
+#for variable in ['TMP:2 m']:
+    V = VARS[variable]
 
-variable = 'TMP:2 m'
-V = VARS[variable]
+    # Mean Spread for hour 1200 UTC for the range of dates
+    for hour in range(24):
+        sDATE = datetime(2018, 5, 1, hour)
+        eDATE = datetime(2018, 10, 1, hour)
+        DATES = range_dates(sDATE, eDATE, DAYS=1)
+        fxx = range(0,19)
 
-# Mean Spread for hour 1200 UTC for the range of dates
-for hour in range(24):
-    sDATE = datetime(2018, 5, 1, hour)
-    eDATE = datetime(2018, 10, 1, hour)
-    DATES = range_dates(sDATE, eDATE, DAYS=1)
-    fxx = range(0,19)
-    variable = 'TMP:2 m'
+        # Get mean spread for hour
+        AVG_SPREAD = mean_spread(DATES, variable=variable, fxx=fxx)
 
-    # Get mean spread for hour
-    AVG_SPREAD = mean_spread(DATES, variable=variable, fxx=fxx)
-
-    # Generate Figures
-    make_plots(m, AVG_SPREAD, variable, sDATE, eDATE, hour, fxx, save=True)
-    make_plots(mW, AVG_SPREAD, variable, sDATE, eDATE, hour, fxx, save=True)
-    make_plots(mU, AVG_SPREAD, variable, sDATE, eDATE, hour, fxx, save=True)
+        # Generate Figures
+        make_plots(m, AVG_SPREAD, variable, sDATE, eDATE, hour, fxx, save=True)
+        make_plots(mW, AVG_SPREAD, variable, sDATE, eDATE, hour, fxx, save=True)
+        make_plots(mU, AVG_SPREAD, variable, sDATE, eDATE, hour, fxx, save=True)

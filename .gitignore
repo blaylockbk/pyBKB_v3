@@ -3,7 +3,7 @@ Thumbs.db
 
 get_credentials.py
 *.nc
-*.grib2
+*.grib2*
 *.npy
 *.h5
 *.pyc
