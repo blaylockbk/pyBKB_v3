@@ -11,6 +11,7 @@ Average Model Spread : The square root of the average variances.
 
 import numpy as np
 from datetime import datetime, timedelta
+import multiprocessing
 
 import sys
 sys.path.append('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3')
@@ -43,28 +44,154 @@ def spread(validDATE, variable, fxx=range(0,19), verbose=True):
     
     return spread
 
+def mean_spread_MP(inputs):
+    """
+    Each processor works on a separate validDATE
+    """
+    i, D, variable, fxx, verbose = inputs
 
-def mean_spread(sDATE, eDATE=None, variable='TMP:2 m', fxx=range(0,19), verbose=True):
+    if verbose:
+        msg = 'Progress: %02d%% (%s of %s) complete ----> Downloading %s\r' % ((i[0]+1)/i[1]*100, i[0]+1, i[1], D.strftime('%d %b %Y %H:%M UTC'))
+        sys.stdout.write(msg)
+        sys.stdout.flush()
+        print(msg)
+    # Get all forecasts for the validDATE, and filter out nan values (size of array is greater than 1).
+    if variable.split(':')[0] == 'UVGRD':
+        HH = [get_hrrr_variable(D-timedelta(hours=f), variable, fxx=f, verbose=False)['SPEED'] for f in fxx]
+        HH = list(filter(lambda x: np.size(HH) > 1, HH))
+    else:
+        HH = [get_hrrr_variable(D-timedelta(hours=f), variable, fxx=f, verbose=False)['value'] for f in fxx]
+        HH = list(filter(lambda x: np.size(HH) > 1, HH))
+    # Compute the variance for all forecasts
+    var = np.var(HH, ddof=1, axis=0) # ddof=1 because we want the sample variance
+    
+    return var
+    
+
+def mean_spread(validDATES, variable='TMP:2 m', fxx=range(0,19), verbose=True, reduce_CPUs=2):
     """
     For a range of dates (or for an array of dates)
 
     Mean spread is the square root of the mean variance
+---------------------------
+    The average spread, otherwise known ad the average standard deviation,
+    is correctly computed as the *square root of the average variance*.
+
+    Sample Variance:
+    sigma^2 = s^2 = 1/(n-1) SUM(x - mean(x)^2
+    
+    Standard Deviation
+    sigma = s = sqrt(s^2)
+    
+    Average Model Spread
+    mean(sigma) = sqrt(mean(s^2))
+
+    Fortin, V., M. Abaza, F. Anctil, and R. Turcotte, 2014: Why Should 
+         Ensemble Spread Match the RMSE of the Ensemble Mean?. J. 
+         Hydrometeor., 15, 1708–1713, https://doi.org/10.1175/JHM-D-14-0008.1
+         See equation (16)
+
+    Input:
+        validDATES    - A list of datetime objects representing the valid date
+                        to consider for the mean calculation.
+        variable      - A HRRR GRIB2 variable name code. Default is 2-m Temp.
+        fxx           - Forecast hours to consider in the variance calculation
+                        Default is all 0-18 hours.
     """
+    
+    args = [[(i, len(validDATES)), D, variable, fxx, verbose] for i, D in enumerate(validDATES)]
+    cpus = multiprocessing.cpu_count() - reduce_CPUs
+    P = multiprocessing.Pool(cpus)
+    all_variances = P.map(mean_spread_MP, args)
+    P.close()
 
-    HH = np.array([get_hrrr_variable(validDATE-timedelta(hours=f), variable, fxx=f, verbose=False)['value'] for f in fxx])
+    if verbose:
+        print('\nFinished Loading HRRR Data.')
 
-    # The average spread (average standard deviation) is correctly computed
-    # as the square root of the average variance.
-    #
-    # Fortin, V., M. Abaza, F. Anctil, and R. Turcotte, 2014: Why Should 
-    #     Ensemble Spread Match the RMSE of the Ensemble Mean?. J. 
-    #     Hydrometeor., 15, 1708–1713, https://doi.org/10.1175/JHM-D-14-0008.1
+    # Mean spread is the square root of the mean variances
+    mean_spread = np.sqrt(np.mean(all_variances, axis=0))    
 
-    std = [np.std(HH[-i:], ddof=1, axis=0) for i in range(1, len(fxx)+1)]
-    var = [np.var(HH[-i:], ddof=1, axis=0) for i in range(1, len(fxx)+1)]
+    return mean_spread
 
-    # Domain mean spread
-    meanstd = [np.sqrt(np.mean(i)) for i in var]
 
-    # Domain maximum spread
-    maxstd = [i.max() for i in std]
+
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    from BB_datetimes.range import range_dates
+    from BB_HRRR.HRRR_Pando import get_hrrr_latlon
+    from BB_maps.my_basemap import draw_HRRR_map, draw_centermap
+
+    latlon = get_hrrr_latlon()
+    lat = latlon['lat']
+    lon = latlon['lon']
+    m = draw_HRRR_map()
+    mW = draw_centermap(40, -115, (10,10))
+    mU = draw_centermap(39.5, -111.6, (3.2,3.2))
+
+    # Mean Spread for hour 1200 UTC for the range of dates
+    hour = 12
+    sDATE = datetime(2018, 5, 1, hour)
+    eDATE = datetime(2018, 10, 1, hour)
+    DATES = range_dates(sDATE, eDATE, DAYS=1)
+    fxx = range(0,19)
+    variable = 'TMP:2 m'
+
+    AVG_SPREAD = mean_spread(DATES, variable=variable, fxx=fxx)
+
+    plt.figure(1, figsize=(15,15))
+    m.pcolormesh(lon, lat, AVG_SPREAD,
+                cmap='magma',
+                latlon=True,
+                vmin=0)
+
+    m.drawcoastlines(linewidth=.2, color='lightgrey')
+    m.drawcountries(linewidth=.2, color='lightgrey')
+    m.drawstates(linewidth=.2, color='lightgrey')
+
+    plt.title('HRRR Model Spread %s' % variable, fontweight='bold', loc='left')
+    plt.title('Start: %s\n End: %s' % (sDATE.strftime('%d %b %Y %H:%M UTC'),
+                                            eDATE.strftime('%d %b %Y %H:%M UTC')), loc='right')
+    plt.title('Hour: %s\nFXX: %s' % (hour, fxx))
+    cb = plt.colorbar(orientation='horizontal', pad=.01, shrink=.8)
+    cb.set_label('Mean Model Spread')
+    #plt.savefig('./figs/hourly_SPREAD/CONUS_%s_h%02d' % (variable.replace(':', '-').replace(' ', '-'), hour))
+    
+
+    plt.figure(2, figsize=(9, 9))
+    mW.pcolormesh(lon, lat, AVG_SPREAD,
+                cmap='magma',
+                latlon=True,
+                vmin=0)
+
+    mW.drawcoastlines(linewidth=.2, color='lightgrey')
+    mW.drawcountries(linewidth=.2, color='lightgrey')
+    mW.drawstates(linewidth=.2, color='lightgrey')
+
+    plt.title('HRRR Model Spread %s' % variable, fontweight='bold', loc='left')
+    plt.title('Start: %s\n End: %s' % (sDATE.strftime('%d %b %Y %H:%M UTC'),
+                                            eDATE.strftime('%d %b %Y %H:%M UTC')), loc='right')
+    plt.ylabel('Hour: %s\nFXX: %s' % (hour, fxx))
+    cb = plt.colorbar(orientation='horizontal', pad=.01, shrink=.8)
+    cb.set_label('Mean Model Spread')
+    #plt.savefig('./figs/hourly_SPREAD/WEST_%s_h%02d' % (variable.replace(':', '-').replace(' ', '-'), hour))
+
+    plt.figure(3, figsize=(9, 9))
+    mU.pcolormesh(lon, lat, AVG_SPREAD,
+                cmap='magma',
+                latlon=True,
+                vmin=0)
+
+    mU.drawcoastlines(linewidth=.2, color='lightgrey')
+    mU.drawcountries(linewidth=.2, color='lightgrey')
+    mU.drawstates(linewidth=.2, color='lightgrey')
+
+    plt.title('HRRR Model Spread %s' % variable, fontweight='bold', loc='left')
+    plt.title('Start: %s\n End: %s' % (sDATE.strftime('%d %b %Y %H:%M UTC'),
+                                            eDATE.strftime('%d %b %Y %H:%M UTC')), loc='right')
+    plt.ylabel('Hour: %s\nFXX: %s' % (hour, fxx))
+    cb = plt.colorbar(orientation='horizontal', pad=.01, shrink=.8)
+    cb.set_label('Mean Model Spread')
+    #plt.savefig('./figs/hourly_SPREAD/UTAH_%s_h%02d' % (variable.replace(':', '-').replace(' ', '-'), hour))
+    
+    plt.show()
+    
