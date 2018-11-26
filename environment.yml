@@ -1,4 +1,4 @@
-name: users-workshop
+name: pyBKB_v3
 channels:
   - conda-forge
 dependencies:
@@ -6,9 +6,17 @@ dependencies:
   - numpy
   - matplotlib
   - cartopy
-  - basemap
+  - jupyter
+  - jupyterlab
   - netcdf4
-  - h5py
-  - pygrib
+  - pandas
+  - scipy
   - metpy
+  - siphon
   - xarray
+  - basemap
+  - basemap-data-hires
+  - dask
+  - pyproj
+  - h5py
+  #- pygrib # Not availalbe on Windows

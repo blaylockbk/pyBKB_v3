@@ -39,8 +39,6 @@ import sys
 sys.path.append('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/')
 sys.path.append('B:\pyBKB_v3')
 
-
-
 def get_GLM_files_for_range(sDATE, eDATE, HOURS=range(24)):
     """
     Get all the GLM 'flashes' data file names that occurred within a range of

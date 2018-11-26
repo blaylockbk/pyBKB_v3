@@ -97,7 +97,7 @@ def mean_spread_MP(inputs):
     return var
 
 
-def mean_spread(validDATES, variable='TMP:2 m', fxx=range(0,19), verbose=True, reduce_CPUs=2):
+def mean_spread(validDATES, variable='TMP:2 m', fxx=range(0,19), verbose=True, reduce_CPUs=3):
     """
     For a range of dates (or for an array of dates)
 
@@ -138,7 +138,11 @@ def mean_spread(validDATES, variable='TMP:2 m', fxx=range(0,19), verbose=True, r
         print('\nFinished Loading HRRR Data.')
 
     # Mean spread is the square root of the mean variances
+    if verbose:
+        print('Computing mean spread...')
     mean_spread = np.sqrt(np.mean(all_variances, axis=0))    
+    if verbose:
+        print('                     ...done')
 
     return mean_spread
 

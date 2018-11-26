@@ -73,12 +73,12 @@ VARS = {'TMP:2 m':{'cmap':'magma',
                       'label':'10 m V Wind Component',
                       'units':r'm s$\mathregular{^{-1}}$'},                       
         'REFC:entire':{'cmap':'magma',
-                       'vmax':20,
+                       'vmax':15,
                        'vmin':0,
                        'label':'Simulated Composite Reflectivity',
                        'units':'dBZ'},
         'LTNG:entire':{'cmap':'magma',
-                       'vmax':1,
+                       'vmax':0.6,
                        'vmin':0,
                        'label':'Hourly Max Lightning Threat',
                        'units':r'Flashes km$\mathregular{^{-2}}$ 5min$\mathregular{^{-1}}$'},
@@ -88,10 +88,20 @@ VARS = {'TMP:2 m':{'cmap':'magma',
                       'label':'500 hPa Geopotential Height',
                       'units':'m'},
         'CAPE:surface':{'cmap':'magma',
-                        'vmax':1500,
+                        'vmax':1000,
                         'vmin':0,
                         'label':'Convective Available Potential Energy',
-                        'units':'J kg'}                                             
+                        'units':'J kg'},
+        'APCP:surface':{'cmap':'magma',
+                        'vmax':5,
+                        'vmin':0,
+                        'label':'1 hr Accumulated Precipitation',
+                        'units':'mm'},                        
+        'WIND:10 m':{'cmap':'magma',
+                     'vmax':3.5,
+                     'vmin':0,
+                     'label':'10 m Hourly Max Wind Speed',
+                     'units':r'm s$\mathregular{^{-1}}$'} 
                     }
 
 def make_plots(MAP, data, variable, sDATE, eDATE, hour, fxx, save=True):
@@ -116,10 +126,10 @@ def make_plots(MAP, data, variable, sDATE, eDATE, hour, fxx, save=True):
     MAP.drawstates(linewidth=.3, color='w')
 
     plt.title('HRRR %s' % variable, fontweight='bold', loc='left')
-    plt.title('Start: %s\n End: %s' % (sDATE.strftime('%d %b %Y %H:%M UTC'),
-                                       eDATE.strftime('%d %b %Y %H:%M UTC')), loc='right', fontsize=10)
+    plt.title('Start: %s\n End: %s' % (sDATE.strftime('%d %b %Y'),
+                                       eDATE.strftime('%d %b %Y')), loc='right', fontsize=10)
     
-    plt.title('%02d' % (hour))
+    plt.title('%02d:00 UTC' % (hour))
         
     if MAP == mU:
         MAP.drawcounties(linewidth=.2, color='lightgrey')
@@ -137,17 +147,26 @@ def make_plots(MAP, data, variable, sDATE, eDATE, hour, fxx, save=True):
     plt.savefig(SAVEDIR+'%s_h%02d' % (variable.replace(':', '-').replace(' ', '-'), hour))
 
 
-for variable in [i for i in VARS.keys()]:
+#for variable in [i for i in VARS.keys()]:
 #for variable in [i for i in VARS.keys() if i != 'TMP:2 m' and i != 'DPT:2 m']:
-#for variable in ['TMP:2 m']:
+for variable in ['REFC:entire']:
+#for variable in ['TMP:2 m', 'DPT:2 m', 'GUST:surface']:
     V = VARS[variable]
 
     # Mean Spread for hour 1200 UTC for the range of dates
     for hour in range(24):
         sDATE = datetime(2018, 5, 1, hour)
         eDATE = datetime(2018, 10, 1, hour)
+        
+        #sDATE = datetime(2017, 11, 1, hour)
+        #eDATE = datetime(2018, 4, 1, hour)
+        
         DATES = range_dates(sDATE, eDATE, DAYS=1)
-        fxx = range(0,19)
+        
+        if variable in ['WIND: 10 m', 'APCP:surface']:
+            fxx = range(1,19)
+        else:
+            fxx = range(19)
 
         # Get mean spread for hour
         AVG_SPREAD = mean_spread(DATES, variable=variable, fxx=fxx)
