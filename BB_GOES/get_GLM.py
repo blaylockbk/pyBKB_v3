@@ -131,8 +131,9 @@ def accumulate_GLM_FAST_MP(inputs):
     G = xarray.open_dataset(FILE)
     lats = G.variables[data_type+'_lat'].data
     lons = G.variables[data_type+'_lon'].data
-    if complete%10 == 0:
-        print('%s%%' % complete)
+    G.close()
+    if complete%5 == 0:
+        print('%.1f%%' % complete)
     return [lats, lons]
 
 
@@ -150,6 +151,7 @@ def accumulate_GLM_FAST(GLM, data_type='flash', verbose=True):
     cpus = np.minimum(len(GLM['Files']), 10)
     P = multiprocessing.Pool(cpus)
     results = P.map(accumulate_GLM_FAST_MP, inputs)
+    P.close()
 
     lats = [i[0] for i in results]
     lons = [i[1] for i in results]

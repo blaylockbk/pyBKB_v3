@@ -63,12 +63,12 @@ VARS = {'TMP:2 m':{'cmap':'magma',
                      'label':'Surface Wind Gust',
                      'units':r'm s$\mathregular{^{-1}}$'},
         'UGRD:10 m':{'cmap':'magma',
-                      'vmax':3.5,
+                      'vmax':3.25,
                       'vmin':0,
                       'label':'10 m U Wind Component',
                       'units':r'm s$\mathregular{^{-1}}$'},
         'VGRD:10 m':{'cmap':'magma',
-                      'vmax':3.5,
+                      'vmax':3.25,
                       'vmin':0,
                       'label':'10 m V Wind Component',
                       'units':r'm s$\mathregular{^{-1}}$'},                       
@@ -98,7 +98,7 @@ VARS = {'TMP:2 m':{'cmap':'magma',
                         'label':'1 hr Accumulated Precipitation',
                         'units':'mm'},                        
         'WIND:10 m':{'cmap':'magma',
-                     'vmax':3.5,
+                     'vmax':3,
                      'vmin':0,
                      'label':'10 m Hourly Max Wind Speed',
                      'units':r'm s$\mathregular{^{-1}}$'} 
@@ -149,8 +149,8 @@ def make_plots(MAP, data, variable, sDATE, eDATE, hour, fxx, save=True):
 
 #for variable in [i for i in VARS.keys()]:
 #for variable in [i for i in VARS.keys() if i != 'TMP:2 m' and i != 'DPT:2 m']:
-for variable in ['REFC:entire']:
-#for variable in ['TMP:2 m', 'DPT:2 m', 'GUST:surface']:
+for variable in ['UGRD:10 m']:
+#for variable in ['APCP:surface', 'GUST:surface', 'UGRD:10 m', 'VGRD:10 m']:
     V = VARS[variable]
 
     # Mean Spread for hour 1200 UTC for the range of dates

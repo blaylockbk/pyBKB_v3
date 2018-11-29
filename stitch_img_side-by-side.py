@@ -9,8 +9,8 @@ os.system('convert img1.png img2.png +append new.png')
 
 import os
 
+'''
 HEAD = '/uufs/chpc.utah.edu/common/home/u0553130/public_html/PhD/HRRR_RMSE/'
-
 for v in ['TMP:2 m', 'DPT:2 m', 'CAPE:surface', 'HGT:500 mb', 'WIND:10 m', 'UGRD:10 m', 'VGRD:10 m', 'REFC:entire', 'LTNG:entire']:
     for h in range(24):
         DIR = v.split(':')[0]
@@ -23,5 +23,25 @@ for v in ['TMP:2 m', 'DPT:2 m', 'CAPE:surface', 'HGT:500 mb', 'WIND:10 m', 'UGRD
         new  = HEAD+'RMSD_v2v3/%s/%02d.png' % (DIR, h)
         try:
             os.system('convert %s %s +append %s' % (img1, img2, new))
+        except:
+            pass
+'''
+
+
+HEAD_left = '/uufs/chpc.utah.edu/common/home/u0553130/public_html/PhD/HRRR_Spread/Hourly_May2018-Oct2018/'
+HEAD_right = '/uufs/chpc.utah.edu/common/home/u0553130/public_html/PhD/GOES16_GLM/Hourly_May2018-Oct2018/'
+DIRS = os.listdir(HEAD_left)
+for v in DIRS:
+    for h in range(24):
+        img1 = HEAD_left+'%s/CONUS/*h%02d.png' % (v, h)
+        img2 = HEAD_right+'CONUS/*h%02d.png' % (h)
+        SAVEDIR  = HEAD_left+'%s/HRRR_and_GLM/' % (v)
+        if not os.path.exists(SAVEDIR):
+            os.makedirs(SAVEDIR)
+        new = SAVEDIR+'h%02d.png' % (h)
+        try:
+            print('convert -quality 50 %s %s +append %s' % (img1, img2, new))
+            os.system('convert %s %s +append %s' % (img1, img2, new))
+            os.system('convert %s -resize 50%% %s' % (new, new))
         except:
             pass
