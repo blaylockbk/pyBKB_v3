@@ -10,6 +10,7 @@ dependencies:
   - jupyterlab
   - netcdf4
   - pandas
+  - geopandas
   - scipy
   - metpy
   - siphon
@@ -19,4 +20,5 @@ dependencies:
   - dask
   - pyproj
   - h5py
-  #- pygrib # Not availalbe on Windows
+  - shapely
+  - pygrib # Not available on Windows
