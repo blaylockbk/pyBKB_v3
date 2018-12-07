@@ -6,7 +6,6 @@ Compute the model spread for a given variable.
 
         Model Spread : The standard deviation between all solutions
 Average Model Spread : The square root of the average variances.
-
 '''
 
 import numpy as np
@@ -17,7 +16,6 @@ import sys
 sys.path.append('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3')
 sys.path.append('B:\pyBKB_v3')
 from BB_HRRR.HRRR_Pando import get_hrrr_variable, get_hrrr_latlon
-
 
 def spread(validDATE, variable, fxx=range(0,19), verbose=True):
     """
@@ -91,7 +89,7 @@ def mean_spread_MP(inputs):
         percentage_retrieved = 100*len(HH)/float(len(fxx))
         print("    Retrieved %s/%s expected samples for calculations --- %.2f%% \n" % (len(HH), len(fxx), percentage_retrieved))
 
-    # Compute the variance for all forecasts
+    # Compute the variance from all forecasts
     var = np.var(HH, ddof=1, axis=0) # ddof=1 because we want the sample variance
     
     return var
@@ -146,6 +144,83 @@ def mean_spread(validDATES, variable='TMP:2 m', fxx=range(0,19), verbose=True, r
 
     return mean_spread
 
+# =============================================================================
+# =============================================================================
+# =============================================================================
+# =============================================================================
+"""
+Mean Spread FOR THRESHOLD CONDITIONS
+"""
+def mean_spread_threshold_MP(inputs):
+    """
+    Each processor works on a separate validDATE
+    """
+    i, D, variable, fxx, condition, verbose = inputs
+
+    if verbose:
+        msg = 'Progress: %02d%% (%s of %s) complete ----> Downloading %s, %s\r' % ((i[0]+1)/i[1]*100, i[0]+1, i[1], D.strftime('%d %b %Y %H:%M UTC'), variable)
+        sys.stdout.write(msg)
+        sys.stdout.flush()
+        print(msg)
+
+    # Get all forecasts for the validDATE.
+    HH = [get_HRRR_value(D, variable, f) for f in fxx]
+    # Count None values and Filter out None values
+    count_none = np.sum(1 for x in HH if x is None)
+    HH = np.array(list(filter(lambda x: x is not None, HH)))
+    if count_none > 0:
+        print(" WARNING: %s had None values" % D)
+        print("    Counted %s None values" % count_none)
+        percentage_retrieved = 100*len(HH)/float(len(fxx))
+        print("    Retrieved %s/%s expected samples for calculations --- %.2f%% \n" % (len(HH), len(fxx), percentage_retrieved))
+
+    # Compute the variance from all forecasts
+    var = np.var(HH, ddof=1, axis=0) # ddof=1 because we want the sample variance
+    
+    # Mask away values that don't meat the conditional statement.
+    
+    # We only want values if any of the forecast for that hour is .GT. a threshold.
+    # Thus, find the max value of all forecasts, and mask all points that .LT. the threshold.
+    if condition['condition'] == '>':
+        masked_var_thresh = np.ma.array(var, mask=np.max(HH, axis=0) < condition['threshold'])
+    elif condition['condition'] == '>=':
+        masked_var_thresh = np.ma.array(var, mask=np.max(HH, axis=0) <= condition['threshold'])
+    # Or, we only want values if any of the forecast for that hour is .LT. a threshold.
+    # Thus, find the min value of all forecasts, and mask all points that are .GT. the threshold.
+    elif condition['condition'] == '<':
+        masked_var_thresh =np.ma.array(var, mask=np.min(HH, axis=0) > condition['threshold'])
+    elif condition['condition'] == '<=':
+        masked_var_thresh =np.ma.array(var, mask=np.min(HH, axis=0) >= condition['threshold'])
+
+    return masked_var_thresh
+
+
+def mean_spread_threshold(validDATES, variable='TMP:2 m', fxx=range(0,19),
+                          verbose=True, reduce_CPUs=3,
+                          condition = {'condition':'>=', 'threshold':10}):
+    
+    args = [[(i, len(validDATES)), D, variable, fxx, condition, verbose] for i, D in enumerate(validDATES)]
+    cpus = multiprocessing.cpu_count() - reduce_CPUs
+    P = multiprocessing.Pool(cpus)
+    all_variances = np.ma.array(P.map(mean_spread_threshold_MP, args))
+    P.close()
+
+    if verbose:
+        print('\nFinished Loading HRRR Data.')
+
+    # Mean spread is the square root of the mean variances
+    if verbose:
+        print('Computing mean spread...')
+    mean_spread = np.sqrt(np.ma.mean(all_variances, axis=0))    
+    sample_count = np.ma.sum(all_variances > 0, axis=0)
+    if verbose:
+        print('                     ...done')
+
+    return mean_spread, sample_count
+
+
+# =============================================================================
+# =============================================================================
 
 
 if __name__ == '__main__':
