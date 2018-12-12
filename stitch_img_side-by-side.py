@@ -27,7 +27,7 @@ for v in ['TMP:2 m', 'DPT:2 m', 'CAPE:surface', 'HGT:500 mb', 'WIND:10 m', 'UGRD
             pass
 '''
 
-
+'''
 HEAD_left = '/uufs/chpc.utah.edu/common/home/u0553130/public_html/PhD/HRRR_Spread/Hourly_May2018-Oct2018/'
 HEAD_right = '/uufs/chpc.utah.edu/common/home/u0553130/public_html/PhD/GOES16_GLM/Hourly_May2018-Oct2018/'
 DIRS = os.listdir(HEAD_left)
@@ -45,3 +45,21 @@ for v in DIRS:
             os.system('convert %s -resize 50%% %s' % (new, new))
         except:
             pass
+'''
+
+HEAD_left = '/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/grid_resilience/'
+HEAD_right = '/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/grid_resilience/'
+
+for f in range(19):
+    img1 = HEAD_left+'20181108_0600_f%02d.png' % (f)
+    img2 = HEAD_left+'OSG_95th_20181108_0600_f%02d.png' % (f)
+    SAVEDIR  = '/uufs/chpc.utah.edu/common/home/u0553130/public_html/PhD/grid_resilience/camp_fire/'
+    if not os.path.exists(SAVEDIR):
+        os.makedirs(SAVEDIR)
+    new = SAVEDIR+'20181108_0600_f%02d.png' % (f)
+    try:
+        print('convert -quality 50 %s %s +append %s' % (img1, img2, new))
+        os.system('convert %s %s +append %s' % (img1, img2, new))
+        os.system('convert %s -resize 85%% %s' % (new, new))
+    except:
+        pass

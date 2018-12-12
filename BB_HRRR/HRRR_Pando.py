@@ -430,9 +430,10 @@ def pluck_hrrr_point(H, lat=40.771, lon=-111.965, verbose=True, XY_only=False):
         return [np.nan, np.nan]
 
 
-def hrrr_subset(H, half_box=9, lat=40.771, lon=-111.965, verbose=True):
+def hrrr_subset(H, half_box=9, lat=40.771, lon=-111.965, thin=1, verbose=True):
     """
     Trim the HRRR data to a box around a center point.
+    Very handy when you need to plot wind barbs for a smaller domain.
 
     Input:
         H        - A dictionary as returned from get_hrrr_variable()
@@ -440,6 +441,7 @@ def hrrr_subset(H, half_box=9, lat=40.771, lon=-111.965, verbose=True):
                    surrounding the center point.
         lat      - The center latitude
         lon      - The center longitude
+        thin     - Thin out the values (set to 2 for every other value)
     Return:
         A dictionary of the values and lat/lon grids for the subset.
         If H variable is UVGRD, then output separate key for U, V, and SPEED.
@@ -447,17 +449,17 @@ def hrrr_subset(H, half_box=9, lat=40.771, lon=-111.965, verbose=True):
     x, y = pluck_hrrr_point(H, lat=lat, lon=lon, verbose=verbose, XY_only=True)
     
     if 'UGRD' in H:
-        subset = {'lat': H['lat'][x-half_box:x+half_box, y-half_box:y+half_box],
-                  'lon': H['lon'][x-half_box:x+half_box, y-half_box:y+half_box],
-                  'UGRD': H['UGRD'][x-half_box:x+half_box, y-half_box:y+half_box],
-                  'VGRD': H['VGRD'][x-half_box:x+half_box, y-half_box:y+half_box],
-                  'SPEED': H['SPEED'][x-half_box:x+half_box, y-half_box:y+half_box],                
+        subset = {'lat': H['lat'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],
+                  'lon': H['lon'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],
+                  'UGRD': H['UGRD'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],
+                  'VGRD': H['VGRD'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],
+                  'SPEED': H['SPEED'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],                
                   'x': x,
                   'y': y}
     else:
-        subset = {'lat': H['lat'][x-half_box:x+half_box, y-half_box:y+half_box],
-                  'lon': H['lon'][x-half_box:x+half_box, y-half_box:y+half_box],
-                  'value': H['value'][x-half_box:x+half_box, y-half_box:y+half_box],
+        subset = {'lat': H['lat'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],
+                  'lon': H['lon'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],
+                  'value': H['value'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],
                   'x': x,
                   'y': y}
     if verbose:
