@@ -145,4 +145,3 @@ if __name__=="__main__":
     plt.title('Valid %s' % (runDATE+timedelta(hours=fxx)).strftime('%d-%b %H:%M'), loc='right')
 
     plt.show()
-    
