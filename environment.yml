@@ -6,6 +6,7 @@ dependencies:
   - numpy
   - matplotlib
   - cartopy
+  - pylint
   - jupyter
   - jupyterlab
   - netcdf4

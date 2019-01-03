@@ -16,6 +16,7 @@ import sys
 sys.path.append('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3')
 sys.path.append('B:\pyBKB_v3')
 from BB_HRRR.HRRR_Pando import get_hrrr_variable, get_hrrr_latlon
+from BB_wx_calcs.wind import wind_uv_to_spd
 
 def spread(validDATE, variable, fxx=range(0,19), verbose=True):
     """
@@ -54,7 +55,11 @@ def get_HRRR_value(validDATE, variable, fxx):
     runDATE = validDATE - timedelta(hours=fxx)
     
     if variable.split(':')[0] == 'UVGRD':
-        H = get_hrrr_variable(runDATE, variable, fxx=fxx, verbose=False)['SPEED']
+        #print("getting U and V components")
+        Hu = get_hrrr_variable(runDATE, 'UGRD', fxx=fxx, verbose=False)['value']
+        Hv = get_hrrr_variable(runDATE, 'VGRD', fxx=fxx, verbose=False)['value']
+        H =  wind_uv_to_spd(Hu, Hv)
+        
     else:
         H = get_hrrr_variable(runDATE, variable, fxx=fxx, verbose=False)['value']
     

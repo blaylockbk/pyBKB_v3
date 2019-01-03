@@ -16,7 +16,7 @@ import os
 HEAD = '/uufs/chpc.utah.edu/common/home/u0553130/public_html/PhD/HRRR_Spread/Hourly_May2018-Oct2018/'
 DIRS = os.listdir(HEAD)
 #for v in DIRS:
-for v in ['UGRD']:
+for v in ['UVGRD']:
     for d in ['CONUS', 'UTAH', 'WEST']:
     #for d in ['HRRR_and_GLM']:
         path = '%s/%s/%s' % (HEAD, v, d)

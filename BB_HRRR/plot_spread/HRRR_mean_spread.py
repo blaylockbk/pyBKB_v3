@@ -101,7 +101,12 @@ VARS = {'TMP:2 m':{'cmap':'magma',
                      'vmax':3,
                      'vmin':0,
                      'label':'10 m Hourly Max Wind Speed',
-                     'units':r'm s$\mathregular{^{-1}}$'} 
+                     'units':r'm s$\mathregular{^{-1}}$'},
+        'UVGRD:10 m':{'cmap':'magma',
+                      'vmax':2.5,
+                      'vmin':0,
+                      'label':'10 m Wind Speed',
+                      'units':r'm s$\mathregular{^{-1}}$'} 
                     }
 
 def make_plots(MAP, data, variable, sDATE, eDATE, hour, fxx, save=True):
@@ -149,7 +154,7 @@ def make_plots(MAP, data, variable, sDATE, eDATE, hour, fxx, save=True):
 
 #for variable in [i for i in VARS.keys()]:
 #for variable in [i for i in VARS.keys() if i != 'TMP:2 m' and i != 'DPT:2 m']:
-for variable in ['UGRD:10 m']:
+for variable in ['UVGRD:10 m']:
 #for variable in ['APCP:surface', 'GUST:surface', 'UGRD:10 m', 'VGRD:10 m']:
     V = VARS[variable]
 
