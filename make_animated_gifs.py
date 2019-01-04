@@ -17,8 +17,8 @@ HEAD = '/uufs/chpc.utah.edu/common/home/u0553130/public_html/PhD/HRRR_Spread/Hou
 DIRS = os.listdir(HEAD)
 #for v in DIRS:
 for v in ['UVGRD']:
-    for d in ['CONUS', 'UTAH', 'WEST']:
-    #for d in ['HRRR_and_GLM']:
+    #for d in ['CONUS', 'UTAH', 'WEST']:
+    for d in ['HRRR_and_GLM']:
         path = '%s/%s/%s' % (HEAD, v, d)
         try:
             os.system('convert -delay 25 %s/*.png %s/animated.gif' % (path, path))

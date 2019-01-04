@@ -27,11 +27,12 @@ for v in ['TMP:2 m', 'DPT:2 m', 'CAPE:surface', 'HGT:500 mb', 'WIND:10 m', 'UGRD
             pass
 '''
 
-'''
+
 HEAD_left = '/uufs/chpc.utah.edu/common/home/u0553130/public_html/PhD/HRRR_Spread/Hourly_May2018-Oct2018/'
 HEAD_right = '/uufs/chpc.utah.edu/common/home/u0553130/public_html/PhD/GOES16_GLM/Hourly_May2018-Oct2018/'
 DIRS = os.listdir(HEAD_left)
-for v in DIRS:
+#for v in DIRS:
+for v in ['UVGRD']:
     for h in range(24):
         img1 = HEAD_left+'%s/CONUS/*h%02d.png' % (v, h)
         img2 = HEAD_right+'CONUS/*h%02d.png' % (h)
@@ -45,8 +46,8 @@ for v in DIRS:
             os.system('convert %s -resize 50%% %s' % (new, new))
         except:
             pass
-'''
 
+'''
 HEAD_left = '/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/grid_resilience/'
 HEAD_right = '/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/grid_resilience/'
 
@@ -63,3 +64,4 @@ for f in range(19):
         os.system('convert %s -resize 85%% %s' % (new, new))
     except:
         pass
+'''
