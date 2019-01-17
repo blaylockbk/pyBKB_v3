@@ -158,8 +158,8 @@ def accumulate_GLM_FAST(GLM, data_type='flash', verbose=True):
     lats = list(itertools.chain(*lats))
     lons = list(itertools.chain(*lons))
 
-    return {'latitude': lats,
-            'longitude': lons,
+    return {'latitude': np.array(lats),
+            'longitude': np.array(lons),
             'DATETIME': GLM['Range']}
 
 def accumulate_GLM(GLM, data_type='flash', verbose=True):

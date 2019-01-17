@@ -449,7 +449,7 @@ def hrrr_subset(H, half_box=9, lat=40.771, lon=-111.965, thin=1, verbose=True):
         If H variable is UVGRD, then output separate key for U, V, and SPEED.
     """
     x, y = pluck_hrrr_point(H, lat=lat, lon=lon, verbose=verbose, XY_only=True)
-    
+
     if 'UGRD' in H:
         subset = {'lat': H['lat'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],
                   'lon': H['lon'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],
