@@ -307,6 +307,8 @@ def get_hrrr_variable(DATE, variable,
                                'URL': grib2file}
             else:
                 value, lat, lon = grbs[1].data()
+                if variable=='REFC:entire':
+                    value = np.ma.array(value, mask=value==-10)
                 if model == 'hrrrak':
                     lon[lon>0] -= 360
                 return_this = {'value': value,

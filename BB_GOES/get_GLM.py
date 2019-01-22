@@ -39,6 +39,71 @@ import sys
 sys.path.append('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/')
 sys.path.append('B:\pyBKB_v3')
 
+def get_GLM_file_nearesttime(DATE, window=0, verbose=True):
+    """
+    Get the file path+name for the GLM file nearest to a specified date. Will
+    return a list of nearby files according to the window argument.
+    The request DATE is the *start date* of the GLM observation time and 
+    represents observed events/groups/flashes begining at DATE and ending at
+    DATE+20 seconds.
+
+    Input:
+        DATE   - datetime object for the date you want to find the nearest GLM
+                 file available.
+        window - number of files before and after the nearest date requested to
+                 return. Default is 0, which will only return the nearest file.
+                 If set to 6, then will return 13 total files--6 before the
+                 requested DATE (two minutes before DATE), the file nearest to
+                 the requested DATE, and 6 after the DATE (two minutes after
+                 DATE).
+    
+    Return:
+        A list of file paths+names of GLM files.
+    """
+    # List available files for the requested datetime and include files for
+    # +/- 1 hour
+    HG7 = '/uufs/chpc.utah.edu/common/home/horel-group7/Pando/GOES16/GLM-L2-LCFA/'
+    ls1 = HG7+'%s/' % (DATE-timedelta(hours=1)).strftime('%Y%m%d/%H')
+    ls2 = HG7+'%s/' % DATE.strftime('%Y%m%d/%H')
+    ls3 = HG7+'%s/' % (DATE+timedelta(hours=1)).strftime('%Y%m%d/%H')
+
+    if verbose:
+        print("Looking in these file paths for th nearest datetime")
+        print(ls1)
+        print(ls2)
+        print(ls3)
+
+    # List the files in those directory
+    files1 = list(map(lambda x: HG7+(datetime.strptime(x.split('_')[3], 's%Y%j%H%M%S%f')).strftime('%Y%m%d/%H/')+x, os.listdir(ls1)))
+    files2 = list(map(lambda x: HG7+(datetime.strptime(x.split('_')[3], 's%Y%j%H%M%S%f')).strftime('%Y%m%d/%H/')+x, os.listdir(ls2)))
+    files3 = list(map(lambda x: HG7+(datetime.strptime(x.split('_')[3], 's%Y%j%H%M%S%f')).strftime('%Y%m%d/%H/')+x, os.listdir(ls3)))
+    all_files = files1+files2+files3
+
+    # Find the file nearest the requested DATE
+    nearest_datetime_idx = np.argmin(list(map(lambda x: np.abs(datetime.strptime(x.split('_')[3], 's%Y%j%H%M%S%f')-DATE), all_files)))
+    nearest_datetime = datetime.strptime(all_files[nearest_datetime_idx].split('_')[3], 's%Y%j%H%M%S%f')
+
+    if verbose:
+        print('       requested:', DATE)
+        print('nearest GLM file:', nearest_datetime)
+        print('        GLM file:', all_files[nearest_datetime_idx])
+
+    # Return the list
+    if window==0:
+        if verbose:
+            print('1 file for nearst time becuase window set to 0')
+        return all_files[nearest_datetime_idx]
+    else:
+        # Retrieve files for the requested window
+        a = slice(nearest_datetime_idx-window, nearest_datetime_idx+window+1)
+        if verbose:
+            print('window = %s files (+/- %s minutes)' % (window, window/3))
+            print('returning %s files' % len(all_files[a]))
+        return all_files[a]
+
+
+
+
 def get_GLM_files_for_range(sDATE, eDATE, HOURS=range(24)):
     """
     Get all the GLM 'flashes' data file names that occurred within a range of
