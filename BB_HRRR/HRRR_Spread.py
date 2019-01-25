@@ -37,7 +37,7 @@ def spread(validDATE, variable, fxx=range(0,19), verbose=True):
                                     verbose=False, value_only=True)['value']
                   for z in run_fxx])
 
-    spread = np.std(H, axis=0)
+    spread = np.std(H, ddof=1, axis=0)
     if verbose:
         print('Timer for HRRR_Spread.spread():', datetime.now-timer)
     
@@ -143,7 +143,7 @@ def mean_spread(validDATES, variable='TMP:2 m', fxx=range(0,19), verbose=True, r
     # Mean spread is the square root of the mean variances
     if verbose:
         print('Computing mean spread...')
-    mean_spread = np.sqrt(np.mean(all_variances, axis=0))    
+    mean_spread = np.sqrt(np.mean(all_variances, axis=0))
     if verbose:
         print('                     ...done')
 
