@@ -8,6 +8,7 @@ get_credentials.py
 *.h5
 *.pyc
 *.nfs*
+*.csv
 
 .rclone.conf
 

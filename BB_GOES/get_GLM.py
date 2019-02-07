@@ -48,14 +48,10 @@ def get_GLM_file_nearesttime(DATE, window=0, verbose=True):
     DATE+20 seconds.
 
     Input:
-        DATE   - datetime object for the date you want to find the nearest GLM
+        DATE   - Datetime object for the date you want to find the nearest GLM
                  file available.
-        window - number of files before and after the nearest date requested to
-                 return. Default is 0, which will only return the nearest file.
-                 If set to 6, then will return 13 total files--6 before the
-                 requested DATE (two minutes before DATE), the file nearest to
-                 the requested DATE, and 6 after the DATE (two minutes after
-                 DATE).
+        window - Number of minutes +/- the requested nearest DATE.
+                 Default is 0 and only returns the nearest file.
     
     Return:
         A list of file paths+names of GLM files.
@@ -68,39 +64,112 @@ def get_GLM_file_nearesttime(DATE, window=0, verbose=True):
     ls3 = HG7+'%s/' % (DATE+timedelta(hours=1)).strftime('%Y%m%d/%H')
 
     if verbose:
-        print("Looking in these file paths for th nearest datetime")
-        print(ls1)
-        print(ls2)
-        print(ls3)
+        print("Looking in these file paths for the nearest datetime")
+        print('  ', ls1)
+        print('  ', ls2)
+        print('  ', ls3)
+        print('---------------------------------------------------')
 
-    # List the files in those directory
-    files1 = list(map(lambda x: HG7+(datetime.strptime(x.split('_')[3], 's%Y%j%H%M%S%f')).strftime('%Y%m%d/%H/')+x, os.listdir(ls1)))
-    files2 = list(map(lambda x: HG7+(datetime.strptime(x.split('_')[3], 's%Y%j%H%M%S%f')).strftime('%Y%m%d/%H/')+x, os.listdir(ls2)))
-    files3 = list(map(lambda x: HG7+(datetime.strptime(x.split('_')[3], 's%Y%j%H%M%S%f')).strftime('%Y%m%d/%H/')+x, os.listdir(ls3)))
-    all_files = files1+files2+files3
+    # List the files in those directory, if the directory exists.
+    if os.path.exists(ls1):
+        files1 = list(map(lambda x: HG7+(datetime.strptime(x.split('_')[3], 's%Y%j%H%M%S%f')).strftime('%Y%m%d/%H/')+x, os.listdir(ls1)))
+        # Remove GOES-17 files if there are any
+        files1 = list(filter(lambda x: '_G16_' in x, files1))
+    else:
+        files1 = []
+        print('**************************************************************')
+        print('!!!WARNING!!! Missing GLM directory', ls1)
+        print('**************************************************************')
+    if os.path.exists(ls2):
+        files2 = list(map(lambda x: HG7+(datetime.strptime(x.split('_')[3], 's%Y%j%H%M%S%f')).strftime('%Y%m%d/%H/')+x, os.listdir(ls2)))
+        # Remove GOES-17 files if there are any
+        files2 = list(filter(lambda x: '_G16_' in x, files2))
+    else:
+        files2 = []
+        print('**************************************************************')
+        print('!!!WARNING!!! Missing GLM directory', ls2)
+        print('**************************************************************')
+    if os.path.exists(ls3):
+        files3 = list(map(lambda x: HG7+(datetime.strptime(x.split('_')[3], 's%Y%j%H%M%S%f')).strftime('%Y%m%d/%H/')+x, os.listdir(ls3)))
+        # Remove GOES-17 files if there are any
+        files3 = list(filter(lambda x: '_G16_' in x, files3))
+    else:
+        files3 = []
+        print('**************************************************************')
+        print('!!!WARNING!!! Missing GLM directory', ls3)
+        print('**************************************************************')
+
+    all_files = np.array(files1+files2+files3)
+    all_files = np.sort(all_files) # Sort files by name
+
+    # Get start datetime of all files
+    files_datetime = list(map(lambda x: datetime.strptime(x.split('_')[3], 's%Y%j%H%M%S%f'), all_files))
+    files_datetime = np.array(files_datetime)
 
     # Find the file nearest the requested DATE
-    nearest_datetime_idx = np.argmin(list(map(lambda x: np.abs(datetime.strptime(x.split('_')[3], 's%Y%j%H%M%S%f')-DATE), all_files)))
+    nearest_datetime_idx = np.argmin(np.abs(files_datetime - DATE))
     nearest_datetime = datetime.strptime(all_files[nearest_datetime_idx].split('_')[3], 's%Y%j%H%M%S%f')
 
     if verbose:
-        print('       requested:', DATE)
-        print('nearest GLM file:', nearest_datetime)
-        print('        GLM file:', all_files[nearest_datetime_idx])
+        print('    Date Requested:', DATE)
+        print('  Nearest GLM file:', nearest_datetime)
 
-    # Return the list
+    # Return the list of files
     if window==0:
         if verbose:
-            print('1 file for nearst time becuase window set to 0')
+            print('Return 1 file nearest to %s because window is set to 0' % nearest_datetime)
         return all_files[nearest_datetime_idx]
     else:
-        # Retrieve files for the requested window
-        a = slice(nearest_datetime_idx-window, nearest_datetime_idx+window+1)
-        if verbose:
-            print('window = %s files (+/- %s minutes)' % (window, window/3))
-            print('returning %s files' % len(all_files[a]))
-        return all_files[a]
+        '''
+        GLM outputs files are every 20 seconds. We expect 3 files per minute.
+        If window is 5 minutes, we expect to retrieve data from 31 files
+           3*5 files before DATE, file nearest DATE, 3*5 files after DATE
+        '''
+        # Number of expected files 
+        expected = window*3*2
+        
+        # DATETIME of plus and minus window
+        minus_window_datetime = DATE - timedelta(minutes=window)
+        plus_window_datetime = DATE + timedelta(minutes=window)
+        
+        dates_in_window = np.logical_and(files_datetime>=minus_window_datetime, 
+                                         files_datetime<plus_window_datetime)
 
+        if np.sum(dates_in_window)==0:
+            print('************************************************************')
+            print('!! WARNING !! There are no GLM files for the period requested!')
+            print('************************************************************')
+            return {'Files': [],
+                    'Number Expected': expected
+                   }
+
+        # Get index of plus and minus window datetime
+        #minus_window_datetime_idx = np.argmin(np.abs(files_datetime-minus_window_datetime))
+        #plus_window_datetime_idx = np.argmin(np.abs(files_datetime-plus_window_datetime))
+
+        # Retrieve files for the requested window
+        #a = slice(minus_window_datetime_idx, plus_window_datetime_idx)
+        #sDATE = datetime.strptime(all_files[a][0].split('_')[3], 's%Y%j%H%M%S%f')
+        #eDATE = datetime.strptime(all_files[a][-1].split('_')[4], 'e%Y%j%H%M%S%f')
+        a = all_files[dates_in_window]
+        sDATE = datetime.strptime(a[0].split('_')[3], 's%Y%j%H%M%S%f')
+        eDATE = datetime.strptime(a[-1].split('_')[4], 'e%Y%j%H%M%S%f')
+        if verbose:
+            print('---------------------------------------------------')
+            print(' Window == +/- %s Minutes' % (window))
+            print(' Window DATES == ', minus_window_datetime, plus_window_datetime)
+            print('    first observation: %s' % (sDATE))
+            print('     last observation: %s' % (eDATE))
+            print('  Returning data from %s GLM files (expected %s)' % (len(a), expected))
+            print('---------------------------------------------------')
+            if len(a)/expected < .5:
+                print('************************************************************')
+                print('!! WARNING !! Less than 50% of the expected GLM files available for the period')
+                print('************************************************************')
+        return {'Files': a,
+                'Number Expected': expected,
+                'Range': [sDATE, eDATE] 
+               }
 
 
 
@@ -196,14 +265,17 @@ def accumulate_GLM_FAST_MP(inputs):
     G = xarray.open_dataset(FILE)
     lats = G.variables[data_type+'_lat'].data
     lons = G.variables[data_type+'_lon'].data
+    area = G.variables[data_type+'_area'].data
+    energy = G.variables[data_type+'_energy'].data
     G.close()
     if complete%5 == 0:
         print('%.1f%%' % complete)
-    return [lats, lons]
+    return [lats, lons, area, energy]
 
 
 def accumulate_GLM_FAST(GLM, data_type='flash', verbose=True):
-    """A mutliprocessing (fast) version of accumulate_GLM"""
+    """A multiprocessing (fast) version of accumulate_GLM"""    
+
     # If GLM is not a dictionary with a key 'Files', then package it as a dict
     if type(GLM) is not dict:
         GLM = {'Files':GLM}
@@ -211,6 +283,12 @@ def accumulate_GLM_FAST(GLM, data_type='flash', verbose=True):
         FILE_DATES = [datetime.strptime(i.split('_')[3], 's%Y%j%H%M%S%f') for i in GLM['Files']]
         GLM['Range'] = [min(FILE_DATES), max(FILE_DATES)]
 
+    if len(GLM['Files'])==0:
+        print('************************************************************')
+        print('!! WARNING !! There are no GLM files!')
+        print('************************************************************')
+        return None
+    
     inputs = [[i/len(GLM['Files'])*100, data_type, f] for i, f in enumerate(GLM['Files'])]
 
     cpus = np.minimum(len(GLM['Files']), 10)
@@ -220,21 +298,27 @@ def accumulate_GLM_FAST(GLM, data_type='flash', verbose=True):
 
     lats = [i[0] for i in results]
     lons = [i[1] for i in results]
+    area = [i[2] for i in results]
+    energy = [i[3] for i in results]
     lats = list(itertools.chain(*lats))
     lons = list(itertools.chain(*lons))
+    area = list(itertools.chain(*area))
+    energy = list(itertools.chain(*energy))
 
     return {'latitude': np.array(lats),
             'longitude': np.array(lons),
+            'area': np.array(area),
+            'energy': np.array(energy),
             'DATETIME': GLM['Range']}
 
-def accumulate_GLM(GLM, data_type='flash', verbose=True):
+def accumulate_GLM(GLM, data_type='flash', verbose=True, in_HRRR_domain=False):
     """
     Accumulate all the GLM 'flash' data that occurred within the 5-minute
     scan window for an ABI file and return the latitude, longitude, and energy
     of all the flashes.
 
     Input:
-        GLM       - A list of GLM files or the dictionary returned by 
+        GLM       - A list of GLM file paths and names returned by 
                     get_GLM_files_for_range() or get_GLM_files_for_ABI().
         data_type - Data to retrieve. Default is 'flash' data. Other options 
                     are 'event' and 'group' which have messed up latitude and
@@ -242,9 +326,7 @@ def accumulate_GLM(GLM, data_type='flash', verbose=True):
     
     Output:
         A dictionary containing the latitudes, longitudes, and energy of each
-        flash (or event or group). The num_per_20_seconds is a list of length
-        of observations per file. If you need to, you can separate the data
-        values by the data's 20-second intervals rather than the 5-minute lump.
+        flash (or event or group).
     """
     # If GLM is not a dictionary with a key 'Files', then package it as a dict
     if type(GLM) is not dict:
@@ -257,7 +339,7 @@ def accumulate_GLM(GLM, data_type='flash', verbose=True):
     lats = np.array([])
     lons = np.array([])
     energy = np.array([])
-    num_per_20_seconds = np.array([])
+    area = np.array([])
 
     # Read the data
     for i, FILE in enumerate(GLM['Files']):
@@ -265,17 +347,80 @@ def accumulate_GLM(GLM, data_type='flash', verbose=True):
         lats = np.append(lats, G.variables[data_type+'_lat'].data)
         lons = np.append(lons, G.variables[data_type+'_lon'].data)
         energy = np.append(energy, G.variables[data_type+'_energy'].data)
-        num_per_20_seconds = np.append(num_per_20_seconds, len(G.variables[data_type+'_lat'].data))
+        area = np.append(energy, G.variables[data_type+'_area'].data)
         G.close()
         if verbose:
             DATE = datetime.strptime(FILE.split('_')[3], 's%Y%j%H%M%S%f')
             sys.stdout.write('\r%.1f%% Complete (%s of %s) : %s' % (i/len(GLM['Files'])*100, i, len(GLM['Files']), DATE))
 
+    # Filter results if not in HRRR domain
+    if in_HRRR_domain:
+        # HRRR max/min latitude and longitude were determined previously
+        # 21.138, 52.61565, -134.09613, -60.91784
+        
+        # Filter for locations within the HRRR domain
+        index_bound_lat = np.logical_and(lats > 21.138, lats < 52.61565)
+        index_bound_lon = np.logical_and(lons > -134.09613, lons < -60.91784)
+        bound = np.logical_and(index_bound_lat, index_bound_lon)
+
+        lats = lats[bound]
+        lons = lons[bound]
+        energy = energy[bound]
+        area = area[bound]
+
     return {'latitude': lats,
             'longitude': lons,
             'energy': energy,
-            'number of values each 20 seconds': num_per_20_seconds,
+            'area': area,
             'DATETIME': GLM['Range']}
+
+
+
+def GLM_xarray_concatenate(FILES, data_type='flash', verbose=True):
+    """
+    ** This function isn't as fast as accumulate_GLM, but it returns the output
+    ** in xarray format.
+
+    Return GLM data from multiple files as a concatenated xarray dataframe.
+    I wonder what the limit of number of open files is? Depends on available 
+    memory.
+
+    Input:
+        FILES     - A list of file paths and names for each GLM file
+        data_type - 'flash', 'group', or 'event' 
+    """
+    # Open all the files for the ABI scan and store in a dictionary
+    for i, f in enumerate(FILES):
+        with xarray.open_dataset(f) as G:
+            if i == 0:
+                lon = G.flash_lon
+                lat = G.flash_lat
+                energy = G.flash_energy
+                area = G.flash_area
+            else:
+                lon = xarray.concat([lon, G.flash_lon], dim='number_of_flashes')
+                lat = xarray.concat([lat, G.flash_lat], dim='number_of_flashes')
+                energy = xarray.concat([energy, G.flash_energy], dim='number_of_flashes')
+                area = xarray.concat([area, G.flash_area], dim='number_of_flashes')
+            
+            if verbose:
+                num = len(FILES)
+                sys.stdout.write('\r%.1f%% Complete (%s of %s)' % (i/num*100, i, num))
+    # Other Variables:
+    #flash_id = xarray.concat([dd[i].flash_id for i in dd.keys()], dim='number_of_flashes')
+    #flash_quality_flag = xarray.concat([dd[i].flash_quality_flag for i in dd.keys()], dim='number_of_flashes')
+    #flash_time_offset_of_first_event = xarray.concat([dd[i].flash_time_offset_of_first_event for i in dd.keys()], dim='number_of_flashes')
+    #flash_time_offset_of_last_event = xarray.concat([dd[i].flash_time_offset_of_last_event for i in dd.keys()], dim='number_of_flashes')
+    #group_parent_flash_id = xarray.concat([dd[i].group_parent_flash_id for i in dd.keys()], dim='number_of_groups')
+
+    # Return the values
+    return {'longitude': lon,
+            'latitude': lat,
+            'area': area,
+            'energy': energy
+            }
+
+
 
 
 if __name__ == '__main__':
