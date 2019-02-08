@@ -167,6 +167,7 @@ def get_GLM_file_nearesttime(DATE, window=0, verbose=True):
                 print('!! WARNING !! Less than 50% of the expected GLM files available for the period')
                 print('************************************************************')
         return {'Files': a,
+                'Number': len(a)
                 'Number Expected': expected,
                 'Range': [sDATE, eDATE] 
                }
@@ -269,7 +270,7 @@ def accumulate_GLM_FAST_MP(inputs):
     energy = G.variables[data_type+'_energy'].data
     G.close()
     if complete%5 == 0:
-        print('%.1f%%' % complete)
+        sys.stdout.write('\r-->> Accumulate GLM FAST MP: %.1f%%' % complete)
     return [lats, lons, area, energy]
 
 
