@@ -56,6 +56,9 @@ def get_GLM_file_nearesttime(DATE, window=0, verbose=True):
     Return:
         A list of file paths+names of GLM files.
     """
+    # Number of expected files 
+    expected = window*3*2
+    
     # List available files for the requested datetime and include files for
     # +/- 1 hour
     HG7 = '/uufs/chpc.utah.edu/common/home/horel-group7/Pando/GOES16/GLM-L2-LCFA/'
@@ -98,9 +101,20 @@ def get_GLM_file_nearesttime(DATE, window=0, verbose=True):
         print('**************************************************************')
         print('!!!WARNING!!! Missing GLM directory', ls3)
         print('**************************************************************')
+    
 
     all_files = np.array(files1+files2+files3)
     all_files = np.sort(all_files) # Sort files by name
+
+    if len(all_files) == 0:
+        print('There are no GLM files within three hours of Date requested')
+        if window==0:
+            return None
+        else:
+            return {'Files': [],
+                    'Number': 0,
+                    'Number Expected': expected,
+                    'Range': [np.nan, np.nan]}                
 
     # Get start datetime of all files
     files_datetime = list(map(lambda x: datetime.strptime(x.split('_')[3], 's%Y%j%H%M%S%f'), all_files))
@@ -125,8 +139,6 @@ def get_GLM_file_nearesttime(DATE, window=0, verbose=True):
         If window is 5 minutes, we expect to retrieve data from 31 files
            3*5 files before DATE, file nearest DATE, 3*5 files after DATE
         '''
-        # Number of expected files 
-        expected = window*3*2
         
         # DATETIME of plus and minus window
         minus_window_datetime = DATE - timedelta(minutes=window)
@@ -140,8 +152,9 @@ def get_GLM_file_nearesttime(DATE, window=0, verbose=True):
             print('!! WARNING !! There are no GLM files for the period requested!')
             print('************************************************************')
             return {'Files': [],
-                    'Number Expected': expected
-                   }
+                    'Number': 0,
+                    'Number Expected': expected,
+                    'Range': [np.nan, np.nan]}
 
         # Get index of plus and minus window datetime
         #minus_window_datetime_idx = np.argmin(np.abs(files_datetime-minus_window_datetime))
@@ -167,7 +180,7 @@ def get_GLM_file_nearesttime(DATE, window=0, verbose=True):
                 print('!! WARNING !! Less than 50% of the expected GLM files available for the period')
                 print('************************************************************')
         return {'Files': a,
-                'Number': len(a)
+                'Number': len(a),
                 'Number Expected': expected,
                 'Range': [sDATE, eDATE] 
                }

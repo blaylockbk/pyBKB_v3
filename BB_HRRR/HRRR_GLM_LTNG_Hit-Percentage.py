@@ -113,24 +113,28 @@ def points_inside_contours_MP(inputs):
         # that is the same length as the number of GLM flashes in the domain.
         inside = np.zeros_like(paths_glm[i]['latitude'])
         
-        # Combine the lat/lon points into a tuple pair
-        latlon_pair = [(paths_glm[i]['longitude'][j], paths_glm[i]['latitude'][j]) for j in range(len(inside))]
-        
-        # Each collection may have many paths--a path for each contour area.
-        # We need to loop through each area and find out which points
-        # lie inside the area. Those points that inside the path area (True),
-        # Then we add those to the inside array.
-        num = len(COLLECTION.collections[level].get_paths())
-        for j, V in enumerate(COLLECTION.collections[level].get_paths()):
-            is_inside = V.contains_points(latlon_pair)
-            inside += is_inside
-            sys.stdout.write('\r-->>  %s: %.1f%% Complete (%s of %s contour areas)' % (i, (j+1)/num*100, (j+1), num))
-        
-        # Convert the inside array from a count to a boolean. This boolean
-        # matches the lat/lon points in the same order.
-        # Add this information to the paths_glm file as a new key 'in_LTNG'
-        # meaning the GLM point is inside the HRRR's LTNG field.
-        in_LTNG[i] = np.array(inside, dtype=bool)
+        if len(inside) == 0:
+            # There are no GLM flashes inside the Path domain, return None
+            in_LTNG[i] = None
+        else:
+            # Combine the lat/lon points into a tuple pair
+            latlon_pair = [(paths_glm[i]['longitude'][j], paths_glm[i]['latitude'][j]) for j in range(len(inside))]
+            
+            # Each collection may have many paths--a path for each contour area.
+            # We need to loop through each area and find out which points
+            # lie inside the area. Those points that inside the path area (True),
+            # Then we add those to the inside array.
+            num = len(COLLECTION.collections[level].get_paths())
+            for j, V in enumerate(COLLECTION.collections[level].get_paths()):
+                is_inside = V.contains_points(latlon_pair)
+                inside += is_inside
+                sys.stdout.write('\r-->>  %s: %.1f%% Complete (%s of %s contour areas)' % (i, (j+1)/num*100, (j+1), num))
+            
+            # Convert the inside array from a count to a boolean. This boolean
+            # matches the lat/lon points in the same order.
+            # Add this information to the paths_glm file as a new key 'in_LTNG'
+            # meaning the GLM point is inside the HRRR's LTNG field.
+            in_LTNG[i] = np.array(inside, dtype=bool)
         
     return in_LTNG
     
@@ -162,7 +166,6 @@ def points_inside_contours(paths_glm, COLLECTIONS, level=0,):
     
     cores = np.minimum(multiprocessing.cpu_count(), len(inputs))
     with multiprocessing.Pool(cores) as p:
-        
         in_LTNG_dicts = np.array(p.map(points_inside_contours_MP, inputs))
         p.close()
         p.join()
@@ -177,8 +180,13 @@ def points_inside_contours(paths_glm, COLLECTIONS, level=0,):
     for i in range(len(in_LTNG_dicts)):
         for d in in_LTNG_dicts[i].keys():
             flash_boolean = in_LTNG_dicts[i][d]
-            paths_glm[d]['in_LTNG_F%02d' % i] = {'boolean':flash_boolean,
-                                                 'hit rate': sum(flash_boolean)/len(flash_boolean)}   
+            if flash_boolean is None:
+                # There were no GLM flashes in the domain. Set hit rate to np.nan
+                paths_glm[d]['in_LTNG_F%02d' % i] = {'boolean':flash_boolean,
+                                                     'hit rate': np.nan}   
+            else:
+                paths_glm[d]['in_LTNG_F%02d' % i] = {'boolean':flash_boolean,
+                                                     'hit rate': sum(flash_boolean)/len(flash_boolean)}   
     
     return paths_glm
 
@@ -209,6 +217,7 @@ def get_HRRR_LTNG_hit_rate(DATE, fxx=range(19)):
     glm = accumulate_GLM_FAST(files)
     print('\n GLM Download Timer:', datetime.now()-timer)
     
+    # Return None if there are no GLM files retrieved. 
     if glm is None:
         print('!!! Warning !!! DATE %s had no lightning data' % DATE)
         # Return: hit_rate, number of flashes, number of files, numb of expected files
@@ -239,6 +248,13 @@ def get_HRRR_LTNG_hit_rate(DATE, fxx=range(19)):
     # Generate a lat/lon tuple for each point
     GLM_latlon_pair = [(glm['longitude'][i], glm['latitude'][i]) for i in range(len(glm['latitude']))]
     
+    # Return a None if the legnth of GLM_latlon_pairs is zero, because there
+    # are no flashes.    
+    if len(GLM_latlon_pair) == 0:
+        print('!!! Warning !!! DATE %s had no lightning data' % DATE)
+        # Return: hit_rate, number of flashes, number of files, numb of expected files
+        return None, (files['Number'], files['Number Expected'])
+
     ## Determine which GLM observation points, from a lat/lon tuple, are in
     # each boundary Path.
     # !! Refer to the Paths generated at the begining of the script!!
@@ -260,7 +276,7 @@ def get_HRRR_LTNG_hit_rate(DATE, fxx=range(19)):
     
     ## Print number of observations within each boundary Path.
     print("----------------------------------------------")
-    print("Observations in each region:")
+    print("GLM Observations in each region:")
     for i in filtered_glm.keys():
         num = len(filtered_glm[i]['latitude'])
         print("    %s\t:\t%s" % (i, '{:,}'.format(num)))
@@ -299,53 +315,16 @@ def get_HRRR_LTNG_hit_rate(DATE, fxx=range(19)):
 if __name__ == '__main__':
     timerStart = datetime.now()
     
-    '''
-    ## Date representing the valid time of interest
-    sDATE = datetime(2018, 7, 1, 0)
-    eDATE = datetime(2018, 8, 1, 0)
-    days = (eDATE-sDATE).days
-    DATES = [sDATE+timedelta(days=d) for d in range(days)]
 
-    output = np.array(list(map(get_HRRR_LTNG_hit_rate, DATES)))
-
-    a = np.array([i[0] for i in output])
-    flash_counts = [i[1] for i in output]
-    num_files = [i[2] for i in output]
-    num_files_expected = [i[3] for i in output]
-
-    # Set first column (F00) as nan, because there are never lightning 
-    # forecasts for that column.
-    a[:,0] = np.nan
-
-    plt.figure(1)
-    z = np.nanpercentile(a, [0, 25, 50, 75, 100], axis=0)
-    plt.fill_between(range(19), z[0], z[-1], color=[.9,.9,.9])
-    plt.fill_between(range(19), z[1], z[-2], color=[.7,.7,.7])
-    plt.plot(range(19), z[2], linewidth=5, color='k')
-
-    plt.plot(range(19), np.transpose(a))
-    plt.plot(range(19), np.nanmean(a, axis=0), linewidth=1, color='w')
-
-    plt.xticks(range(19))
-    plt.grid()
-
-
-    plt.figure(2, figsize=[5,5])
-    plt.boxplot(flash_counts)
-    plt.title('samples: %s' % len(flash_counts))
-    
-    
-    plt.show()
-    '''
     # =========================================================================
-    
+    '''
     ## Single Date and Figure
     #DATE = datetime(2018, 5, 14, 22) # Mallard Fire
     #DATE = datetime(2018, 7, 5, 23) # Lake Christine
     DATE = datetime(2018, 7, 17, 6) # July Storm
     #DATE = datetime(2018, 7, 27, 0) # Missing GLM data
 
-    a, files_expected = get_HRRR_LTNG_hit_rate(DATE)
+    a, (files, expected) = get_HRRR_LTNG_hit_rate(DATE)
 
     FXX = 1
     Hltng = get_hrrr_variable(DATE-timedelta(hours=FXX), 'LTNG:entire', fxx=FXX)
@@ -367,103 +346,77 @@ if __name__ == '__main__':
     m.drawparallels(np.array([24.4, 50.2]), labels=[1,1,1,1], fontsize=10, linewidth=2)
     plt.title('%s -- F%02d' % (DATE, FXX))
     #plt.savefig('HRRR_GLM_hit-rate_demo_%s' % DATE.strftime('%Y%m%d-%H%M))
-    
-    # =========================================================================
-
     '''
-    # Write output to a file
-    fxx_strs = ','.join(['F%02d' % i for i in range(19)])
-    header = 'DATE,GLM_FLASH_COUNT,FILES,EXPECTED,'+fxx_strs
 
-    # Loop over many dates and write output to a file
-    sDATE = datetime(2018, 8, 1, 1)
-    eDATE = datetime(2018, 9, 1, 1)
-    #hours = int((eDATE-sDATE).days*24+((eDATE-sDATE).seconds/3600))
-    #DATES = [sDATE+timedelta(hours=h) for h in range(hours)]
-    days = int((eDATE-sDATE).days)
-    DATES = [sDATE+timedelta(days=d) for d in range(days)]
-
-    # Open File and write a header
-    with open("GLM_in_HRRR_%s.csv" % sDATE.strftime('%b-%Y_h%H'), "w") as f:
-        f.write('%s\n' % header)
-
-    for DATE in DATES:
-        percentage, flash_count, num_files, num_files_expected = get_HRRR_LTNG_hit_rate(DATE)
-        percentage = np.array(percentage.round(5), dtype=str)
-        fxx_str = ','.join(percentage)
-        textOutput = '%s,%s,%s,%s,%s' % (DATE, flash_count, num_files, num_files_expected, fxx_str)
-        # write line to output file
-        with open("GLM_in_HRRR_%s.csv" % sDATE.strftime('%b-%Y_h%H'), "a") as f:
-            f.write(textOutput)
-            f.write("\n")
-    '''
     # =========================================================================
-    """
+ 
     months = [5, 6, 7, 8, 9, 10]
-    hours = range(15, 24)
+    hours = range(20, 24)
 
-    #months = [10]
-    #hours = [3]
+    #months = [6]
+    #hours = [0]
+
+    SAVEDIR = './HRRR_GLM_hit_rate_data/'
 
     for h in hours:
         for m in months:
             print('\n\n\n')
             print('=========================================================')
             print('=========================================================')
-            print('WORKING ON MONTH %s and HOUR %s' % (m, h))
+            print('           WORKING ON MONTH %s and HOUR %s' % (m, h))
             print('=========================================================')
             print('=========================================================')
 
-            # Write output to a file
-            fxx_strs = ','.join(['F%02d' % i for i in range(19)])
-            header = 'DATE,GLM_FLASH_COUNT,FILES,EXPECTED,'+fxx_strs
-
-            # Loop over many dates and write output to a file
-            sDATE = datetime(2018, m, 1, h)
-            eDATE = datetime(2018, m+1, 1, h)
-            #hours = int((eDATE-sDATE).days*24+((eDATE-sDATE).seconds/3600))
-            #DATES = [sDATE+timedelta(hours=h) for h in range(hours)]
-            days = int((eDATE-sDATE).days)
-            DATES = [sDATE+timedelta(days=d) for d in range(days)]
-
-            # Open File and write a header
-            with open("GLM_in_HRRR_%s.csv" % sDATE.strftime('%b-%Y_h%H'), "w") as f:
-                f.write('%s\n' % header)
-
-            for DATE in DATES:
-                percentage, flash_count, num_files, num_files_expected = get_HRRR_LTNG_hit_rate(DATE)
-                percentage = np.array(percentage.round(5), dtype=str)
-                fxx_str = ','.join(percentage)
-                textOutput = '%s,%s,%s,%s,%s' % (DATE, flash_count, num_files, num_files_expected, fxx_str)
-                # write line to output file
-                with open("GLM_in_HRRR_%s.csv" % sDATE.strftime('%b-%Y_h%H'), "a") as f:
-                    f.write(textOutput)
-                    f.write("\n")
-
-            print('Total Timer:', datetime.now()-timerStart)
-    """
-
-    months = [5, 6, 7, 8, 9, 10]
-    hours = range(15, 24)
-
-    for h in hours:
-        for m in months:
-            # Loop over many dates and write output to a file
+            # Loop over many dates and write output to a file (
+            # new file each month.
             sDATE = datetime(2018, m, 1, h)
             eDATE = datetime(2018, m+1, 1, h)
             days = int((eDATE-sDATE).days)
             DATES = [sDATE+timedelta(days=d) for d in range(days)]
-
+            #
             for DATE in DATES:
-                a, files_expected = get_HRRR_LTNG_hit_rate(DATE)
-            
+                #
                 if DATE == sDATE:
-                    # Make New file and create header
-                    print('make file and add header for each Domain')
+                    # Create Header and  initial new file for each domain
+                    fxx_strs = ','.join(['F%02d' % i for i in range(19)])
+                    HEADER = 'DATE,GLM FLASH COUNT,NUM FILES,EXPECTED FILES,'+fxx_strs
+                    for d in PATH_points.keys():
+                        SAVEFILE = SAVEDIR+"GLM_in_HRRR_%s_%s.csv" % (d, sDATE.strftime('%Y_m%m_h%H')) 
+                        with open(SAVEFILE, "w") as f:
+                            f.write('%s\n' % HEADER)
 
-                # For each domain, 
-                    # Write
-                    # date, total flashes, num files, expected files, hit rate f00, hit rate f01, f02, f03, ..., f18
-            
+                # Get Hit Rate Data for each domain Path
+                a, (files, expected) = get_HRRR_LTNG_hit_rate(DATE)
+                
+
+                for d in PATH_points.keys():
+                    # Write the following
+                    # 1 date,
+                    # 2 total flashes,
+                    # 3 num files,
+                    # 4 expected files,
+                    # 5 hit rate f00, ..., f18
+                    if a is None:
+                        fxx_hits_str = ','.join(np.array(np.ones_like(range(19))*np.nan, dtype=str))
+                        line = "%s,%s,%s,%s,%s" % (DATE, 
+                                                np.nan,
+                                                files,
+                                                expected, fxx_hits_str)
+                    else:
+                        fxx_hits = np.array([a[d]['in_LTNG_F%02d' % f]['hit rate'] for f in range(19)]).round(4)
+                        fxx_hits_str = ','.join(np.array(fxx_hits, dtype=str))
+                        line = "%s,%s,%s,%s,%s" % (DATE, 
+                                                len(a[d]['latitude']),
+                                                files,
+                                                expected, fxx_hits_str)
+                    SAVEFILE = SAVEDIR+"GLM_in_HRRR_%s_%s.csv" % (d, sDATE.strftime('%Y_m%m_h%H')) 
+                    with open(SAVEFILE, "a") as f:
+                        f.write('%s\n' % line)
 
 
+"""
+In output:
+    - If "GLM FLASH COUNT" is nan, then there were either no GLM files obtained
+      for that hour, or there were files, but no observed GLM flashes.
+    - If "FXX" is nan, then there were no observed GLM flashes in that domain
+"""
