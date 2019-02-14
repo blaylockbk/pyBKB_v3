@@ -193,9 +193,9 @@ def get_hrrr_variable(DATE, variable,
                 print("!! Hey! You are requesting a date that is not on the Pando archive yet.  !!")
                 print("!! That's ok, I'll redirect you to the NOMADS server. :)                 !!")
                 print("---------------------------------------------------------------------------\n")
-            #grib2file = 'http://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.%s/%s.t%02dz.wrf%sf%02d.grib2' \
+            #grib2file = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.%s/%s.t%02dz.wrf%sf%02d.grib2' \
             #            % (DATE.strftime('%Y%m%d'), model, DATE.hour, field, fxx)
-            grib2file = 'http://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.%s/conus/hrrr.t%02dz.wrf%sf%02d.grib2' \
+            grib2file = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.%s/conus/hrrr.t%02dz.wrf%sf%02d.grib2' \
                         % (DATE.strftime('%Y%m%d'), DATE.hour, field, fxx)
             fileidx = grib2file+'.idx'
         elif model == 'hrrrX':
@@ -210,7 +210,7 @@ def get_hrrr_variable(DATE, variable,
                 print("!! Hey! You are requesting a date that is not on the Pando archive yet.  !!")
                 print("!! That's ok, I'll redirect you to the PARALLEL NOMADS server. :)        !!")
                 print("---------------------------------------------------------------------------\n")
-            grib2file = 'http://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.%s/alaska/hrrr.t%02dz.wrf%sf%02d.ak.grib2' \
+            grib2file = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.%s/alaska/hrrr.t%02dz.wrf%sf%02d.ak.grib2' \
                         % (DATE.strftime('%Y%m%d'), DATE.hour, field, fxx)
             fileidx = grib2file+'.idx'
 
