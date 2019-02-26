@@ -9,6 +9,7 @@ These are for Python 3, because I am switching to version 3.
 
 # Anaconda Environment
 > Reference: https://github.com/Unidata/unidata-users-workshop
+> Reference: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
 
 I installed the Anaconda python distribution and created a new environment using the `environment.yml` file provided in this directory. The name of the environment is pyBKB_v3
 

@@ -1,0 +1,21 @@
+
+name: TEST_cfgrib
+
+channels:
+  - conda-forge
+dependencies:
+  - python=3
+  - numpy
+  - matplotlib
+  - jupyter
+  - jupyterlab
+  - netcdf4
+  - pandas
+  - geopandas
+  - scipy
+  - metpy
+  - siphon
+  - xarray
+  - pyproj
+  - h5py
+  - cfgrib # Windows support for grib files

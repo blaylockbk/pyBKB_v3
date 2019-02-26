@@ -246,7 +246,8 @@ def get_hrrr_variable(DATE, variable,
                 byte_range = str(rangestart) + '-' + str(rangeend)
             gcnt += 1
         ## 2) When the byte range is discovered, use cURL to download the file.
-        os.system('curl -s -o %s --range %s %s' % (outfile, byte_range, grib2file))
+        cURL = 'curl -s -o %s --range %s %s' % (outfile, byte_range, grib2file)
+        os.system(cURL)
         
         
         ## --- Convert winds to earth-relative --------------------------------
@@ -310,7 +311,8 @@ def get_hrrr_variable(DATE, variable,
                                'name': [grbs[1].name, grbs[2].name],
                                'units': [grbs[1].units, grbs[2].units],
                                'level': [grbs[1].level, grbs[2].level],
-                               'URL': grib2file}
+                               'URL': grib2file,
+                               'cURL':cURL}
             else:
                 value, lat, lon = grbs[1].data()
                 if variable=='REFC:entire':
@@ -329,7 +331,8 @@ def get_hrrr_variable(DATE, variable,
                                'name': grbs[1].name,
                                'units': grbs[1].units,
                                'level': grbs[1].level,
-                               'URL': grib2file}                
+                               'URL': grib2file,
+                               'cURL': cURL}
             if removeFile:
                 os.system('rm -f %s' % (outfile))
 
@@ -353,7 +356,8 @@ def get_hrrr_variable(DATE, variable,
                 'valid' : np.nan,
                 'anlys' : np.nan,
                 'msg' : np.nan,
-                'URL': grib2file}
+                'URL': grib2file,
+                'cURL': None}
 
 
 ###############################################################################

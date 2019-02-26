@@ -13,3 +13,4 @@ get_credentials.py
 .rclone.conf
 
 figs/
+WOOLSEY_100km/
