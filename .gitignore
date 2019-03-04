@@ -10,6 +10,8 @@ get_credentials.py
 *.nfs*
 *.csv
 
+*.zip
+
 .rclone.conf
 
 figs/

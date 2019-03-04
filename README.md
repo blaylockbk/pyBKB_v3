@@ -47,3 +47,8 @@ or
 Update the environment.yml file, and update the conda environment
 
     conda env update -f environment.yml
+
+List all the available environments
+
+    conda info --envs
+

@@ -1,0 +1,19 @@
+language: python
+python:
+- '2.6'
+- '2.7'
+- '3.3'
+- '3.4'
+- '3.5'
+script:
+- python test.py
+deploy:
+  provider: pypi
+  user: scisco
+  password:
+    secure: l9njqbZu62oo/b9fxJUcsCs4oCGhWqwM1VCkWsnqxY583n9Si7dSiMd9NmpR07lDTkaXJfOe8ljUbnmTVIEDiQyHm1y9SlLzq0bFyvlURvOZUT9binoeaC79KKA/PhRiAAm2Pxgkz5w6XRkm5PZYMmmKWosExvggheVuB56wkdQGnh94EjT1lcgcEAWxs3lymh79MnhSCmaZ6m6EleXpwhLfcePf3pcD8dljHO6zwARTl9QRspQybSYvFhpoxvz4fVMfLVLxrUwfNJGCBuohc8ZUTuIhD//Bf8MBJjN3TkXU0w2fhrZm6LGFq9DfBpmzyFWZZhgmFnNO8q5IK/GHzOKn/UvUQEj7eGjrd2HDzLWCFuJKlxlWsNi3NgsuML17gkRk05jyZkg4m1Da4qfWD0eWmCQgdtglLoXYNlSiIInMmQNyeif3LEB36bMbHWUq8ZCKamjVlNEg2HN9GbiIy0Z9sy3YpD18zK+M35fTkfR1bazQ6ZM4R1II7D3ODdHCb/FrwbZT3kDX+b9cz61F1bZA6ym2rvGHVOMGN71RcTKfRTuVqpF1vFHi8QxyYpoRHW8Lr/EPXjQaLhw2/+/BGyxciNjPWIPSVuYHXlC9yJrv8E39X1J1HOBd6iei7zb0RB3vn3sYcXtFqRT+25MP5t6FedN2xFoc9G/fMRxV0hA=
+  on:
+    repo: scisco/area
+    branch: master
+    python: '3.4'
+    tags: true
