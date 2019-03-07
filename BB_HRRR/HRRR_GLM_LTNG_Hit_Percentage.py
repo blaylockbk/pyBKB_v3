@@ -309,7 +309,7 @@ def get_HRRR_LTNG_hit_rate(DATE, fxx=range(19), contour=0):
     # Return None if there are no GLM files retrieved. 
     if glm is None:
         print('!!! Warning !!! DATE %s had no lightning data' % DATE)
-        # Return: hit_rate, number of flashes, number of files, numb of expected files
+        # Return None and this indicates that there are no GLM flashes.
         return None, (files['Number'], files['Number Expected'])    
 
     ## Get HRRR data-----------------------------------------------------------
@@ -402,7 +402,12 @@ def get_HRRR_LTNG_hit_rate(DATE, fxx=range(19), contour=0):
             for j, H in enumerate(HH):
                 # Get a copy of the gridded forecast data and set all points
                 # not in path to zero.
-                subDOMAIN = H.data.copy()
+                if type(H) == np.ma.core.MaskedArray:
+                    # LTNG is a returned as a masked array, but we need to make
+                    # the contours from the raw data.
+                    subDOMAIN = H.data.copy()
+                else:
+                    subDOMAIN = H.copy()
                 subDOMAIN[not_in_path] = 0
                 # Generate contour objects for each requested forecast hour based
                 # on LTNG data inside the path.
@@ -432,12 +437,11 @@ def get_HRRR_LTNG_hit_rate(DATE, fxx=range(19), contour=0):
 if __name__ == '__main__':
     
     #DATE = datetime(2018, 5, 14, 22) # Mallard Fire
-    #a, (files, expected) = get_HRRR_LTNG_hit_rate(DATE)
-    #a = get_HRRR_LTNG_hit_rate(DATE)
-
-
-
+    #DATE = datetime(2018, 6, 13, 0) # Missing data
     
+    #a, (files, expected) = get_HRRR_LTNG_hit_rate(DATE)
+    
+   
     timerStart = datetime.now()
     
     # =========================================================================
@@ -474,89 +478,113 @@ if __name__ == '__main__':
 
     # =========================================================================
  
-    
-    months = [5, 6, 7, 8, 9, 10]
-    hours = range(24)
+    if True:
+        months = [5, 6, 7, 8, 9, 10]
+        months = [6, 7, 8, 9, 10]
+        hours = range(24)
 
-    #months = [6]
-    #hours = [0]
+        import socket
+        host = socket.gethostname().split('.')[0]
+        if host == 'wx1':
+            hours = [3, 4]
+        elif host == 'wx2':
+            hours = [7]
+        elif host == 'wx3':
+            month = [6]
+            hours = [4]
+        elif host == 'wx4':
+            hours = [10, 11]
+        elif host == 'meso3':
+            hours = [23]
+        elif host == 'meso4':
+            hours = [19, 20, 22, 23]
+        print('\n     =======================================')
+        print('        HOST: %s, HOURS: %s' % (host, hours))
+        print('     =======================================\n')
+        #months = [6]
+        #hours = [0]
 
-    SAVEDIR = './HRRR_GLM_hit_rate_data_TEST/'
-    if not os.path.exists(SAVEDIR):
-        os.makedirs(SAVEDIR)
+        SAVEDIR = './HRRR_GLM_hit_rate_data_TEST/'
+        if not os.path.exists(SAVEDIR):
+            os.makedirs(SAVEDIR)
 
-    for h in hours:
-        for m in months:
-            print('\n\n\n')
-            print('=========================================================')
-            print('=========================================================')
-            print('           WORKING ON MONTH %s and HOUR %s' % (m, h))
-            print('=========================================================')
-            print('=========================================================')
+        for h in hours:
+            for m in months:
+                print('\n')
+                print('=========================================================')
+                print('=========================================================')
+                print('           WORKING ON MONTH %s and HOUR %s' % (m, h))
+                print('=========================================================')
+                print('=========================================================')
 
-            # Loop over many dates and write output to a file (
-            # new file each month.
-            sDATE = datetime(2018, m, 1, h)
-            eDATE = datetime(2018, m+1, 1, h)
-            days = int((eDATE-sDATE).days)
-            DATES = [sDATE+timedelta(days=d) for d in range(days)]
-            #
-            for DATE in DATES:
-                if DATE == sDATE:
-                    # Create Header and  initial new file for each domain
-                    fxx_hit_head = ','.join(['F%02d_Hit_Rate' % i for i in range(19)])
-                    fxx_false_head = ','.join(['F%02d_False_Alarm' % i for i in range(19)])
-                    fxx_area_head = ','.join(['F%02d_Total_Area_km2' % i for i in range(19)])
-                    HEADER = 'DATE,GLM FLASH COUNT,NUM FILES,EXPECTED FILES,'+fxx_hit_head+','+fxx_false_head+','+fxx_area_head
-                    for d in PATH_points.keys():
+                # Loop over many dates and write output to a file (
+                # new file each month.
+                sDATE = datetime(2018, m, 1, h)
+                eDATE = datetime(2018, m+1, 1, h)
+                days = int((eDATE-sDATE).days)
+                DATES = [sDATE+timedelta(days=d) for d in range(days)]
+                #
+                for DATE in DATES:
+                    if DATE == sDATE:
+                        # Create Header and  initial new file for each domain
+                        fxx_hit_head = ','.join(['F%02d_Hit_Rate' % i for i in range(19)])
+                        fxx_false_head = ','.join(['F%02d_False_Alarm' % i for i in range(19)])
+                        fxx_area_head = ','.join(['F%02d_Total_Area_km2' % i for i in range(19)])
+                        HEADER = 'DATE,GLM FLASH COUNT,NUM FILES,EXPECTED FILES,'+fxx_hit_head+','+fxx_false_head+','+fxx_area_head
+                        for d in PATH_points.keys():
+                            SAVEFILE = SAVEDIR+"TEST_GLM_in_HRRR_%s_%s.csv" % (d, sDATE.strftime('%Y_m%m_h%H')) 
+                            with open(SAVEFILE, "w") as f:
+                                f.write('%s\n' % HEADER)
+
+                    # Get Hit Rate Data for each domain Path
+                    a, (files, expected) = get_HRRR_LTNG_hit_rate(DATE)
+                    
+
+                    for d in PATHS.keys():
+                        # Write the following
+                        # 1 date,
+                        # 2 total flashes,
+                        # 3 num files,
+                        # 4 expected files,
+                        # 5 hit rate f00, ..., f18
+                        # 6 false alarm rate f00, ..., f18
+                        # 7 total area f00, ..., f18
+                        if a is None:
+                            fxx_hits_str = ','.join(np.array(np.ones_like(range(19))*np.nan, dtype=str))
+                            fxx_false_str = ','.join(np.array(np.ones_like(range(19))*np.nan, dtype=str))
+                            fxx_area_str = ','.join(np.array(np.ones_like(range(19))*np.nan, dtype=str))
+                            line = "%s,%s,%s,%s,%s,%s,%s" % (DATE, 
+                                                             np.nan,        # because there are no flashes
+                                                             files,         # should be zero
+                                                             expected,      # 180
+                                                             fxx_hits_str,  # nan, because no GLM data
+                                                             fxx_false_str, # nan, because no GLM data
+                                                             fxx_area_str)  # nan, to indicate there we no GLM data
+                        else:
+                            fxx_hits = np.round(a[d]['HRRR LTNG']['Hit Rate'], 4)
+                            fxx_false = np.round(a[d]['HRRR LTNG']['False Alarm'], 4)
+                            fxx_area = np.round(a[d]['HRRR LTNG']['Total Area km2'], 6)
+                            fxx_hits_str = ','.join(np.array(fxx_hits, dtype=str))
+                            fxx_false_str = ','.join(np.array(fxx_false, dtype=str))
+                            fxx_area_str = ','.join(np.array(fxx_area, dtype=str))
+
+                            line = "%s,%s,%s,%s,%s,%s,%s" % (DATE, 
+                                                            len(a[d]['latitude']),
+                                                            files,
+                                                            expected,
+                                                            fxx_hits_str,
+                                                            fxx_false_str,
+                                                            fxx_area_str)
                         SAVEFILE = SAVEDIR+"TEST_GLM_in_HRRR_%s_%s.csv" % (d, sDATE.strftime('%Y_m%m_h%H')) 
-                        with open(SAVEFILE, "w") as f:
-                            f.write('%s\n' % HEADER)
-
-                # Get Hit Rate Data for each domain Path
-                a, (files, expected) = get_HRRR_LTNG_hit_rate(DATE)
-                
-
-                for d in PATHS.keys():
-                    # Write the following
-                    # 1 date,
-                    # 2 total flashes,
-                    # 3 num files,
-                    # 4 expected files,
-                    # 5 hit rate f00, ..., f18
-                    # 6 false alarm rate f00, ..., f18
-                    # 7 total area f00, ..., f18
-                    if a is None:
-                        fxx_hits_str = ','.join(np.array(np.ones_like(range(19))*np.nan, dtype=str))
-                        line = "%s,%s,%s,%s,%s" % (DATE, 
-                                                   np.nan,
-                                                   files,
-                                                   expected, fxx_hits_str)
-                    else:
-                        fxx_hits = np.round(a[d]['HRRR LTNG']['Hit Rate'], 4)
-                        fxx_false = np.round(a[d]['HRRR LTNG']['False Alarm'], 4)
-                        fxx_area = np.round(a[d]['HRRR LTNG']['Total Area km2'], 6)
-                        fxx_hits_str = ','.join(np.array(fxx_hits, dtype=str))
-                        fxx_false_str = ','.join(np.array(fxx_false, dtype=str))
-                        fxx_area_str = ','.join(np.array(fxx_area, dtype=str))
-
-                        line = "%s,%s,%s,%s,%s,%s,%s" % (DATE, 
-                                                         len(a[d]['latitude']),
-                                                         files,
-                                                         expected,
-                                                         fxx_hits_str,
-                                                         fxx_false_str,
-                                                         fxx_area_str)
-                    SAVEFILE = SAVEDIR+"TEST_GLM_in_HRRR_%s_%s.csv" % (d, sDATE.strftime('%Y_m%m_h%H')) 
-                    with open(SAVEFILE, "a") as f:
-                        f.write('%s\n' % line)
-                    print('Wrote to', SAVEFILE)
+                        with open(SAVEFILE, "a") as f:
+                            f.write('%s\n' % line)
+                        print('Wrote to', SAVEFILE)
 
 
-"""
-In output:
-    - If "GLM FLASH COUNT" is nan, then there were either no GLM files obtained
-      for that hour, or there were files, but no observed GLM flashes.
-    - If "FXX" is nan, then there were no observed GLM flashes in that domain
-"""
+    """
+    In output:
+        - If "GLM FLASH COUNT" is nan, then there were either no GLM files obtained
+        for that hour, or there were files, but no observed GLM flashes.
+        - If "FXX" is nan, then there were no observed GLM flashes in that domain
+    """
 

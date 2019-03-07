@@ -397,35 +397,39 @@ def get_hrrr_all_valid(validDATE, variable, fxx=range(19), verbose=False):
     """
     Return a 3D array with all forecasts for a single valid time.
     This is about seven times faster than using a simple list comprehension.
-
+    #
     Input:
         validDATE - datetime for the valid date of interest
         variable  - HRRR variable string (e.g. 'TMP:2 m')
         fxx       - forecast hours you want to retrieve. Default 0-18.
-    
+    #
     Return:
         3D array of the forecasts for the requested valid time. The first
         dimension matches the leadtime of each fxx.
     """
     inputs = [[validDATE, variable, f, verbose] for f in fxx]
-    
+    #
     # Don't use more cores than needed, and don't use all available cores
     cores = np.minimum(len(range(19)), multiprocessing.cpu_count()-1)
     with multiprocessing.Pool(19) as p:
         HH = p.map(get_hrrr_all_valid_MP, inputs)
         p.close()
         p.join()
-    
+    #
     # If the returned value is nan, then make an array full of nans
     for i, hh in enumerate(HH):
         if np.shape(hh) == ():
             HH[i] = np.ones([1059, 1799])*np.nan
-
-    if type(HH[0]) == np.ma.core.MaskedArray:
+    #
+    if any([type(i)==np.ma.core.MaskedArray for i in HH]):
         return np.ma.array(HH)
     else:
         return np.array(HH)
 
+    if any([type(i)==np.ma.core.MaskedArray for i in HH]):
+        aa = np.ma.array(HH)
+    else:
+        bb = np.array(HH)
 
 
 ###############################################################################
