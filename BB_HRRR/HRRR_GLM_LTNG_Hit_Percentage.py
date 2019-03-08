@@ -480,7 +480,6 @@ if __name__ == '__main__':
  
     if True:
         months = [5, 6, 7, 8, 9, 10]
-        months = [6, 7, 8, 9, 10]
         hours = range(24)
 
         import socket
@@ -490,14 +489,14 @@ if __name__ == '__main__':
         elif host == 'wx2':
             hours = [7]
         elif host == 'wx3':
-            month = [6]
+            months = [6]
             hours = [4]
         elif host == 'wx4':
             hours = [10, 11]
         elif host == 'meso3':
             hours = [23]
         elif host == 'meso4':
-            hours = [19, 20, 22, 23]
+            hours = [11]
         print('\n     =======================================')
         print('        HOST: %s, HOURS: %s' % (host, hours))
         print('     =======================================\n')
@@ -523,6 +522,7 @@ if __name__ == '__main__':
                 eDATE = datetime(2018, m+1, 1, h)
                 days = int((eDATE-sDATE).days)
                 DATES = [sDATE+timedelta(days=d) for d in range(days)]
+                
                 #
                 for DATE in DATES:
                     if DATE == sDATE:
