@@ -11,24 +11,46 @@ Can define the resolution of the map with resolution argument:
     'h' - high
     'f' - full
 
-Note: Basemap is no longer supported
+Note: Basemap is no longer supported. I Should lean more towards Caropy, but 
+Basemap is so handy!
 """
 
 from mpl_toolkits.basemap import Basemap
+import numpy as np
 
-def draw_centermap(lat, lon, size=(3,3), resolution='i', area_thresh=2000):
+
+def draw_centermap(center, size=(3,3), resolution='i', area_thresh=2000):
     """
-    Draw a square map given a center latitude and longitude.
+    Draw a square map given a center.
     input:
-        lat  - The center latitude
-        lon  - The center longitude
-        size - A tuple for the distance between the center location and how far
-               left/right/up/down you want the map to display
+        center - A tuple for latitude and longitude, i.e. (42, -110.5)
+                 A MesoWest Station ID, i.e. 'KSLC'
+                 A state name, i.e. 'Utah'
+        size   - A tuple for the distance between the center location and how
+                 far left/right/up/down you want the map to display
     """
+
+    if type(center) == tuple:
+        lat, lon = center
+    else:
+        # Read in list of states
+        states = np.genfromtxt('BB_maps/data/states_latlon.csv', names=True, delimiter=',', dtype=None, encoding='UTF-8')
+        if center.upper() in np.char.upper(states['State']):
+            state_idx = np.argwhere(states['State'] == center)[0][0]
+            STATE, lat, lon = states[state_idx]
+        else:
+            # Maybe it is a MesoWest station ID
+            from BB_MesoWest.get_MesoWest import get_mesowest_stninfo
+            a = get_mesowest_stninfo(center)
+            if a != 'ERROR':
+                lat, lon = a['WBB']['latitude'], a['WBB']['longitude']
+            else:
+                print('I am sorry. I do not under stand your request')
+                print('Input must be a (lat,lon) tuple, a state like "Utah", or a MesoWest ID')
+
     return Basemap(projection='cyl', resolution=resolution, area_thresh=area_thresh,
                    llcrnrlon=lon-size[1], llcrnrlat=lat-size[0],
                    urcrnrlon=lon+size[1], urcrnrlat=lat+size[0])
-
 
 def draw_CONUS_cyl_map(resolution='i', area_thresh=2000):
     """
