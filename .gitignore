@@ -9,6 +9,7 @@ get_credentials.py
 *.pyc
 *.nfs*
 *.csv
+!states_latlon.csv
 
 *.zip
 
@@ -16,3 +17,4 @@ get_credentials.py
 
 figs/
 WOOLSEY_100km/
+
