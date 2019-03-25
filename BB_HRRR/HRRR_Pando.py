@@ -24,9 +24,9 @@ Contents:
 
     LocDic_hrrr_hovmoller          - A hovmoller array to show all forecasts at each valid time.
 
-    The difference between a time series and a pollywog is that:
-        - a time series is for the all analyses (f00) or all forecast hours (fxx) for multiple runs
-        - a pollywog is a time series for the full forecast cycle of a single run, i.e. f00-f18
+The difference between a time series and a pollywog is that:
+    - a time series is for the all analyses (f00) or all forecast hours (fxx) for multiple runs
+    - a pollywog is a time series for the full forecast cycle of a single run, i.e. f00-f18
 
 A Special Note on U and V wind components:
     You can set the variable to be 'UVGRD:[level]' and the get_hrrr_variable

@@ -11,12 +11,13 @@ Can define the resolution of the map with resolution argument:
     'h' - high
     'f' - full
 
-Note: Basemap is no longer supported. I Should lean more towards Caropy, but 
+Note: Basemap is no longer supported. I Should lean more towards Cartopy, but 
 Basemap is so handy!
 """
 
 from mpl_toolkits.basemap import Basemap
 import numpy as np
+
 
 
 def draw_centermap(center, size=(3,3), resolution='i', area_thresh=2000):
@@ -34,7 +35,7 @@ def draw_centermap(center, size=(3,3), resolution='i', area_thresh=2000):
         lat, lon = center
     else:
         # Read in list of states
-        states = np.genfromtxt('BB_maps/data/states_latlon.csv', names=True, delimiter=',', dtype=None, encoding='UTF-8')
+        states = np.genfromtxt('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/BB_maps/data/states_latlon.csv', names=True, delimiter=',', dtype=None, encoding='UTF-8')
         if center.upper() in np.char.upper(states['State']):
             state_idx = np.argwhere(states['State'] == center)[0][0]
             STATE, lat, lon = states[state_idx]

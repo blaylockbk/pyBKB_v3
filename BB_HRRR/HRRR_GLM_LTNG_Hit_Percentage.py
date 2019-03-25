@@ -436,10 +436,10 @@ def get_HRRR_LTNG_hit_rate(DATE, fxx=range(19), contour=0):
 
 if __name__ == '__main__':
     
-    #DATE = datetime(2018, 5, 14, 22) # Mallard Fire
+    DATE = datetime(2018, 5, 14, 22) # Mallard Fire
     #DATE = datetime(2018, 6, 13, 0) # Missing data
     
-    #a, (files, expected) = get_HRRR_LTNG_hit_rate(DATE)
+    a, (files, expected) = get_HRRR_LTNG_hit_rate(DATE)
     
    
     timerStart = datetime.now()
@@ -478,12 +478,17 @@ if __name__ == '__main__':
 
     # =========================================================================
  
-    if True:
-        months = [5, 6, 7, 8, 9, 10]
+    if False:
+        #months = [5, 6, 7, 8, 9, 10]
+
+        year = 2018
+        months = [12]
         hours = range(24)
 
+        
         import socket
         host = socket.gethostname().split('.')[0]
+        '''
         if host == 'wx1':
             hours = [3, 4]
         elif host == 'wx2':
@@ -497,13 +502,13 @@ if __name__ == '__main__':
             hours = [23]
         elif host == 'meso4':
             hours = [11]
+        '''
         print('\n     =======================================')
         print('        HOST: %s, HOURS: %s' % (host, hours))
         print('     =======================================\n')
-        #months = [6]
-        #hours = [0]
 
-        SAVEDIR = './HRRR_GLM_hit_rate_data_TEST/'
+
+        SAVEDIR = './HRRR_GLM_hit_rate_data/'
         if not os.path.exists(SAVEDIR):
             os.makedirs(SAVEDIR)
 
@@ -518,8 +523,12 @@ if __name__ == '__main__':
 
                 # Loop over many dates and write output to a file (
                 # new file each month.
-                sDATE = datetime(2018, m, 1, h)
-                eDATE = datetime(2018, m+1, 1, h)
+                sDATE = datetime(year, m, 1, h)
+                if m==12:
+                    eDATE = datetime(year+1, 1, 1, h)
+                else:
+                    eDATE = datetime(year, m+1, 1, h)
+                    
                 days = int((eDATE-sDATE).days)
                 DATES = [sDATE+timedelta(days=d) for d in range(days)]
                 
@@ -532,7 +541,7 @@ if __name__ == '__main__':
                         fxx_area_head = ','.join(['F%02d_Total_Area_km2' % i for i in range(19)])
                         HEADER = 'DATE,GLM FLASH COUNT,NUM FILES,EXPECTED FILES,'+fxx_hit_head+','+fxx_false_head+','+fxx_area_head
                         for d in PATH_points.keys():
-                            SAVEFILE = SAVEDIR+"TEST_GLM_in_HRRR_%s_%s.csv" % (d, sDATE.strftime('%Y_m%m_h%H')) 
+                            SAVEFILE = SAVEDIR+"GLM_in_HRRR_%s_%s.csv" % (d, sDATE.strftime('%Y_m%m_h%H')) 
                             with open(SAVEFILE, "w") as f:
                                 f.write('%s\n' % HEADER)
 
@@ -575,7 +584,7 @@ if __name__ == '__main__':
                                                             fxx_hits_str,
                                                             fxx_false_str,
                                                             fxx_area_str)
-                        SAVEFILE = SAVEDIR+"TEST_GLM_in_HRRR_%s_%s.csv" % (d, sDATE.strftime('%Y_m%m_h%H')) 
+                        SAVEFILE = SAVEDIR+"GLM_in_HRRR_%s_%s.csv" % (d, sDATE.strftime('%Y_m%m_h%H')) 
                         with open(SAVEFILE, "a") as f:
                             f.write('%s\n' % line)
                         print('Wrote to', SAVEFILE)

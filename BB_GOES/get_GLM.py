@@ -26,6 +26,8 @@ Functions:
     get_GLM_files_for_range() - Get GLM file names for a date range
     get_GLM_files_for_ABI()   - Get GLM file names for an ABI image
     accumulate_GLM()          - Return list of point data for a list of files
+    filter_by_path()          - Filter GLM flashes by a path.
+    filter_by_HRRR()          - Filter GLM flashes by HRRR domain.
 """
 
 import os 
@@ -279,8 +281,11 @@ def accumulate_GLM_FAST_MP(inputs):
     G = xarray.open_dataset(FILE)
     lats = G.variables[data_type+'_lat'].data
     lons = G.variables[data_type+'_lon'].data
-    area = G.variables[data_type+'_area'].data
     energy = G.variables[data_type+'_energy'].data
+    if data_type == 'event':
+        area = np.nan
+    else:
+        area = G.variables[data_type+'_area'].data
     G.close()
     if complete%5 == 0:
         sys.stdout.write('\r-->> Accumulate GLM FAST MP: %.1f%%' % complete)
@@ -288,7 +293,11 @@ def accumulate_GLM_FAST_MP(inputs):
 
 
 def accumulate_GLM_FAST(GLM, data_type='flash', verbose=True):
-    """A multiprocessing (fast) version of accumulate_GLM"""    
+    """
+    A multiprocessing (fast) version of accumulate_GLM
+        GLM       - a list of file paths
+        data_type - 'flash', 'group', or 'event'
+    """    
 
     # If GLM is not a dictionary with a key 'Files', then package it as a dict
     if type(GLM) is not dict:
@@ -314,10 +323,14 @@ def accumulate_GLM_FAST(GLM, data_type='flash', verbose=True):
     lons = [i[1] for i in results]
     area = [i[2] for i in results]
     energy = [i[3] for i in results]
+    
     lats = list(itertools.chain(*lats))
     lons = list(itertools.chain(*lons))
-    area = list(itertools.chain(*area))
     energy = list(itertools.chain(*energy))
+    if data_type == 'event':
+        area = None
+    else:
+        area = list(itertools.chain(*area))
 
     return {'latitude': np.array(lats),
             'longitude': np.array(lons),
@@ -434,6 +447,199 @@ def GLM_xarray_concatenate(FILES, data_type='flash', verbose=True):
             'energy': energy
             }
 
+#==============================================================================
+#==============================================================================
+#==============================================================================
+
+def filter_by_path(glm):
+    
+    """
+    Inputs:
+        glm    - the object returned by accumulate_GLM
+    """
+    from matplotlib.path import Path
+    from BB_HRRR.HRRR_Pando import get_hrrr_latlon
+    
+    # Get HRRR latitude and longitude grids
+    Hlat, Hlon = get_hrrr_latlon(DICT=False)
+
+    # =============================================================================
+    print('Make domain paths...')
+    ## Create Path boundaries of HRRR domain and subdomains of interest:
+    # HRRR: All points counter-clockwise around the model domain.
+    # West, Central, East: A 16 degree wide and 26 degree tall boundary region.
+    PATH_points = {
+        'HRRR':
+            {'lon': np.concatenate([Hlon[0], Hlon[:,-1], Hlon[-1][::-1], Hlon[:,0][::-1]]),
+            'lat': np.concatenate([Hlat[0], Hlat[:,-1], Hlat[-1][::-1], Hlat[:,0][::-1]])},
+        'West':{
+            'lon':[-120, -104, -104, -120, -120],
+            'lat':[24.4, 24.4, 50.2, 50.2, 24.2]},
+        'Central':{
+            'lon':[-104, -88, -88, -104, -104],
+            'lat':[24.4, 24.4, 50.2, 50.2, 24.2]},
+        'East':{
+            'lon':[-88, -72, -72, -88, -88],
+            'lat':[24.4, 24.4, 50.2, 50.2, 24.2]},
+        'Utah':{
+            'lon':[-114.041664, -111.047526, -111.045645,  -109.051460, -109.048632, -114.051534, -114.041664],
+            'lat':[41.993580, 42.002846, 40.998538, 40.998403, 36.998310, 37.000574, 41.993580]}
+    }
+    ## Combine lat/lon as vertice pair as a tuple. i.e. (lon, lat).
+    PATH_verts = {}
+    for i in PATH_points.keys():
+        PATH_verts[i] = np.array([(PATH_points[i]['lon'][j], PATH_points[i]['lat'][j]) for j in range(len(PATH_points[i]['lon']))])
+
+    ## Generate Path objects from the vertices.
+    PATHS = {}
+    for i in PATH_verts.keys():
+        PATHS[i] = Path(PATH_verts[i])
+
+    ## Filter GLM observation within the HRRR domain. -------------------------
+    #--------------------------------------------------------------------------
+    # The GLM observes flashes for the disk in its field of view. We only want
+    # the flashes within the HRRR domain. This is tricky. We can't just use
+    # lat/lon bounds, because the projection of the HRRR model *bends* the
+    # lat/lon and we would overshoot corners. 
+    # Instead, we will use the Paths created at the begining of the script and
+    # determine which GLM points are inside each Path.Patch.
+    
+    # Total number of GLM observations
+    print("Total GLM observations:", len(glm['latitude']))
+    
+    # Generate a lat/lon tuple for each point
+    print('generate lat/lon pair...')
+    GLM_latlon_pair = list(zip(glm['longitude'], glm['latitude']))
+    print('...done')
+
+    # Return a None if the legnth of GLM_latlon_pairs is zero, because there
+    # are no flashes.    
+    if len(GLM_latlon_pair) == 0:
+        print('!!! Warning !!! DATE %s had no lightning data' % DATE)
+        # Return: hit_rate, number of flashes, number of files, numb of expected files
+        return None
+
+    ## Determine which GLM observation points, from a lat/lon tuple, are in
+    # each boundary Path.
+    # !! Refer to the Paths generated at the begining of the script!!
+    
+    # Using each Path in PATHS, determine which GLM points fall inside the Path
+    print('Find which points are inside path')
+    print('')
+    inside_path = {}
+    for i in PATHS.keys(): 
+        inside_path[i] = PATHS[i].contains_points(GLM_latlon_pair)
+    print('...done!')
+
+    ## Filter the GLM data keys by the bounding Path (points inside Path):
+    filtered_glm = {'DATETIME':glm['DATETIME']}
+    for i in inside_path.keys():
+        if np.size(glm['area']) == 1:
+            filtered_glm[i] = {
+                'latitude': glm['latitude'][inside_path[i]],
+                'longitude': glm['longitude'][inside_path[i]],
+                'energy': glm['energy'][inside_path[i]],
+                'area': None
+            }
+        else:
+            filtered_glm[i] = {
+                'latitude': glm['latitude'][inside_path[i]],
+                'longitude': glm['longitude'][inside_path[i]],
+                'energy': glm['energy'][inside_path[i]],
+                'area': glm['area'][inside_path[i]]
+            }
+    return filtered_glm
+
+
+def filter_by_HRRR(lats, lons, Hlat, Hlon, m=False):
+    """
+    Take a set of points and return a boolean of which points are inside
+    the HRRR domain. Typically used to filter GLM flashes, groups, or events
+    that are inside the HRRR domain.
+    NOTE: Converting the lat/lon points to the HRRR's lambert-conformal 
+          map coordinates is incredibly faster than looping though each point
+          with the `contains_points` path method to check if it exists.
+          This faster method is possible because the HRRR grid is regular and 
+          in a box. If the path is irregular, we would have to use the
+          `contains_points` method.
+
+    Input:
+        lats - a vector of latitudes
+        lons - a vector of longitudes
+        Hlat - HRRR gridded latitudes from `get_hrrr_latlon(DICT=False)`
+        Hlon - HRRR gridded longitudes from `get_hrrr_latlon(DICT=False)`
+        m    - the HRRR domain basemap object from `draw_HRRR_map()`
+    """  
+    # Convert HRRR lat/lon points to map coordinates
+    X, Y = m(Hlon, Hlat)
+
+    # Convert input points to map coordinates
+    glm_X, glm_Y = m(lons, lats)
+
+    # Determine which are inside 
+    filtered = np.logical_and.reduce((glm_X > X.min(), glm_X < X.max(),
+                                      glm_Y > Y.min(), glm_Y < Y.max()))
+    return filtered
+
+
+def bin_GLM_on_HRRR_grid(glm, Hlat, Hlon, m):
+    """
+    Return a grid of flash counts on the HRRR grid.
+
+    This step requires us to put the GLM event data in the HRRR map coordinates
+    because the HRRR lat/lon grid is irregularly spaced in lat/lon units. But,
+    if we use the lambert-conformal map coordinates (the projection of the HRRR
+    output), the grid spacing is equal. With the regular grid, in map
+    coordinates, we can bin the GLM data as a 2D histogram.
+    NOTE: We cannot do this with the lat/lon grid because `np.histogram2d` 
+          requires 1D vectors in the x and y direction to specify the bins, and
+          the lat/lon grid is not uniform. The map coordinates, however, are
+          uniform (almost).
+
+    Inputs: 
+        glm  - dictionary returned from accumulate_glm().
+        Hlat - HRRR latitude grid
+        Hlon - HRRR longitude grid
+        m    - basemap map object of HRRR grid returned by draw_HRRR_map
+    
+    Return:
+        hist     - the 2D histogram binned on HRRR grid
+        filtered - the boolean array of which of the points are inside the 
+                   HRRR domain.
+    """
+
+    # Get the boolean of GLM points that are within the HRRR domain
+    filtered = filter_by_HRRR(glm['latitude'], glm['longitude'], Hlat, Hlon, m)
+
+    # Convert GLM points and HRRR latitude/longitude grid to the HRRR's
+    # lambert-conformal map coordinates.
+    glm_X, glm_Y = m(glm['longitude'][filtered], glm['latitude'][filtered])
+    X, Y = m(Hlon, Hlat)
+
+    # My working in the HRRR's map grid coordinates rather than latitude/longitude
+    # coordinates, the grid spacing is approximately linear and we can generate
+    # a 2D histogram with evenly spaced bins. Bin measurements are based on the
+    # middle row and middle column of the HRRR grid. 
+    mid_row_idx, mid_col_idx =  np.array(np.shape(Hlon))//2
+
+    # Bins in the x and y directions are derived from the model's middle row.
+    # To make the size of the 2D histogram to have the same number HRRR grid
+    # points, we need one extra bin. Add an extra bin value at the end.
+    xbins = X[mid_row_idx]
+    xbins = np.append(xbins, xbins[-1]+np.mean(np.diff(xbins)))
+
+    ybins = Y[:, mid_col_idx]
+    ybins = np.append(ybins, ybins[-1]+np.mean(np.diff(ybins)))
+
+    ## Generate the 2D histogram
+    hist, xedges, yedges = np.histogram2d(glm_X, glm_Y, bins=(xbins, ybins))
+    
+    # The histogram needs to be transposed to be same as HRRR. Also, mask
+    # the zero counts.
+    hist = np.transpose(hist)
+    hist = np.ma.array(hist, mask=hist==0)
+
+    return (hist, filtered)
 
 
 
