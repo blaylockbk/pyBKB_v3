@@ -70,6 +70,63 @@ def files_on_pando(DATE):
     return np.array(flist)
 
 
+def get_files_for_range(sDATE, eDATE, satellite=16, dataset='ABI', verbose=False):
+    """
+    Get all ABI or GLM files for a daterange.
+
+    Input:
+        sDATE     - The begining date
+        eDATE     - The ending date (inclusive)
+        satellite - The number of the GOES satellite. 16, or 17.
+    """
+    assert satellite in [16, 17], ('satellite must be either 16 or 17')
+    assert dataset in ['ABI', 'GLM'], ('dataset must be either "ABI" or "GLM"')
+
+    if dataset == 'ABI':
+        Data = 'ABI-L2-MCMIPC'
+    elif dataset == 'GLM':
+        Data = 'GLM-L2-LCFA'
+
+    # GOES16 ABI and GLM data is stored on horel-group7 and on Pando
+    HG7 = '/uufs/chpc.utah.edu/common/home/horel-group7/Pando/GOES%s/%s/' % (satellite, Data)
+
+    # Directories are sorted by hour. Get all possible direcotires within the
+    # requested range of dates.
+    dt = eDATE-sDATE
+    hours = dt.days*24 + int((dt).seconds/3600)
+    look_here_DATES = [sDATE+timedelta(hours=h) for h in range(hours+1)]
+
+    # Store the files from each directory
+    files = []
+    for DATE in look_here_DATES:
+        # Directory path for this date...
+        DIR = HG7+'%s/' % DATE.strftime('%Y%m%d/%H')
+        if verbose:
+            print("Looking here: %s" % DIR)
+        # Store the files (full path) from those directories, if it exists
+        if os.path.exists(DIR):
+            files += list(map(lambda x: DIR+x, os.listdir(DIR)))
+
+    # Sometime a file might be in the wrong directory. This was the case when GLM on GOES-17
+    # was being tested. We want to remove these, so save this variable for later.
+    files = list(filter(lambda x: '_G%02d_' % satellite in x, files))
+
+    # Convert to numpy array for indexing
+    files = np.array(files)
+
+    # Filter the files based on the requested range. File start scan should
+    # be after sDATE and file end scan should be before eDATE.
+    # First, we need arrays of the datetimes of each file.
+    sSCANS = np.array([datetime.strptime(x.split('_')[3], 's%Y%j%H%M%S%f') for x in files])
+    eSCANS = np.array([datetime.strptime(x.split('_')[4], 'e%Y%j%H%M%S%f') for x in files])
+
+    # Determine index of files within the bounds. 
+    within_bounds = np.logical_and(sSCANS>=sDATE, eSCANS<=eDATE)
+    files = files[within_bounds]
+
+    return files
+
+
 def file_nearest(DATE):
     """
     Return the file name and path nearest the requested date.
