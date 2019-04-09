@@ -143,53 +143,52 @@ def fractions_skill_score_SPECIAL(obs_binary, fxx_binary, domains,
     return return_this
 
 
-def write_table_to_file(FSS_dict, DATE, fxx=range(1,19), SAVEDIR='./HRRR_GLM_Fractions_Skill_Score/'):
+def write_table_to_file(FSS_dict, DATE, write_domains, fxx=range(1,19), SAVEDIR='./HRRR_GLM_Fractions_Skill_Score/'):
     """
     Inputs:
         FSS - the dictionary returned from
               fractions_skill_score_SPECIAL()
     """
     for DOMAIN in domains:
-        # Directories for each Domain
-        DOM_DIR = "%s/%s/" % (SAVEDIR, DOMAIN)
-        if not os.path.exists(DOM_DIR):
-            os.makedirs(DOM_DIR)
-        #
-        SAVEFILE = "%s/%s_%s.csv" % (DOM_DIR, DOMAIN, DATE.strftime('%Y_m%m_h%H')) 
-        #
-        # Initiate new file with header if the day of the month is 1.
-        if DATE.day == 1:
-            FSS_str = ','.join(['F%02d_FSS' % i for i in fxx])
-            HEADER = 'DATE,' + FSS_str
-            with open(SAVEFILE, "w") as f:
-                f.write('%s\n' % HEADER)
-        #
-        if FSS_dict is None:
-            FSS_str = ','.join(np.array(np.ones_like(fxx)*np.nan, dtype=str))
-            line = "%s,%s" % (DATE, FSS_str)
-        else:
-            FSS_str = ','.join(np.array(np.round(FSS_dict[DOMAIN], 4), dtype=str))
-            line = "%s,%s" % (DATE, FSS_str)
-        with open(SAVEFILE, "a") as f:
-            f.write('%s\n' % line)
-        print('Wrote to', SAVEFILE)
+        if DOMAIN in write_domains:
+            # Directories for each Domain
+            DOM_DIR = "%s/%s/" % (SAVEDIR, DOMAIN)
+            if not os.path.exists(DOM_DIR):
+                os.makedirs(DOM_DIR)
+            #
+            SAVEFILE = "%s/%s_%s.csv" % (DOM_DIR, DOMAIN, DATE.strftime('%Y_m%m_h%H')) 
+            #
+            # Initiate new file with header if the day of the month is 1.
+            if DATE.day == 1:
+                FSS_str = ','.join(['F%02d_FSS' % i for i in fxx])
+                HEADER = 'DATE,' + FSS_str
+                with open(SAVEFILE, "w") as f:
+                    f.write('%s\n' % HEADER)
+            #
+            if FSS_dict is None:
+                FSS_str = ','.join(np.array(np.ones_like(fxx)*np.nan, dtype=str))
+                line = "%s,%s" % (DATE, FSS_str)
+            else:
+                FSS_str = ','.join(np.array(np.round(FSS_dict[DOMAIN], 4), dtype=str))
+                line = "%s,%s" % (DATE, FSS_str)
+            with open(SAVEFILE, "a") as f:
+                f.write('%s\n' % line)
+            print('Wrote to', SAVEFILE)
 
 
 def write_to_files_MP(inputs):
     """
-    Each iteration will work on a different set of days for the spcified
+    Each iteration will work on a different set of days for the specified
     hour and month, i.e. all 1200 UTC validDates for all days in February.
     """
-    year, month, hour = inputs
+    year, month, hour, radii = inputs
 
     sDATE = datetime(year, month, 1, hour)
     if month==12:
         eDATE = datetime(year+1, 1, 1, hour)
     else:
         eDATE = datetime(year, month+1, 1, hour)
-        
-    days = int((eDATE-sDATE).days)
-    DATES = [sDATE+timedelta(days=d) for d in range(days)]
+
     #
     print('\n')
     print('=========================================================')
@@ -198,22 +197,58 @@ def write_to_files_MP(inputs):
     print('=========================================================')
     print('=========================================================')
     #
+    ### Check if the file we are working on exists
     #
-    for DATE in DATES:        
-        # Get contingency stats, which contains the binary field:
-        stats = get_GLM_HRRR_contingency_stats(DATE)
-        if stats != None:
-            obs_binary = stats.get("Observed Binary")
-            fxx_binary = stats.get("Forecast Binary")
+    SAVEDIR = './HRRR_GLM_Fractions_Skill_Score_r%02d/' % radii[0]
 
-        #radii = [5, 10, 20, 40, 80]
-        radii = [5, 10, 20]
-        for r in radii:
+    DOMAINS = ['Utah', 'Colorado', 'Texas', 'Florida', 'HRRR', 'West', 'Central', 'East']
+    FILES = ["%s/%s/%s_%s.csv" % (SAVEDIR, D, D, sDATE.strftime('%Y_m%m_h%H')) for D in DOMAINS]
+    EXISTS = [os.path.exists(i) for i in FILES]
+
+    Next_DATE = []
+    for (F, E) in zip(FILES, EXISTS):
+        if E:
+            last = np.genfromtxt(F, delimiter=',', names=True, encoding='UTF-8', dtype=None)['DATE'][-1]
+            Next_DATE.append(datetime.strptime(last, '%Y-%m-%d %H:%M:%S')+timedelta(days=1))
+        else:
+            Next_DATE.append(sDATE)
+
+    # Does the last date equal to the last day of the month of interest?
+    have_all_dates = np.array(Next_DATE) == eDATE
+
+    DOM_DATES = []
+    for i in Next_DATE:
+        next_sDATE = i
+        days = int((eDATE-next_sDATE).days)
+        DATES = [next_sDATE+timedelta(days=d) for d in range(days)]
+        DOM_DATES.append(DATES)
+
+    days = int((eDATE-sDATE).days)
+    DATES = [sDATE+timedelta(days=d) for d in range(days)]
+
+    for DATE in DATES:
+        #print(DATE)
+        write_domains = []
+        for (DOM, DOM_DD) in zip(DOMAINS,DOM_DATES):
+            # Do we need this date?
+            if DATE in DOM_DD:
+                write_domains.append(DOM)
+            #print('%s, %s' % (DOM, DD in DOM_DD))
+        if len(write_domains) != 0:
+            print(write_domains)
+            # Get contingency stats, which contains the binary field:
+            stats = get_GLM_HRRR_contingency_stats(DATE)
             if stats != None:
-                FSS = fractions_skill_score_SPECIAL(obs_binary, fxx_binary, domains, radius=r)
-                write_table_to_file(FSS, DATE, SAVEDIR='./HRRR_GLM_Fractions_Skill_Score_r%02d/' % r)
-            else:
-                write_table_to_file(None, DATE, SAVEDIR='./HRRR_GLM_Fractions_Skill_Score_r%02d/' % r)
+                obs_binary = stats.get("Observed Binary")
+                fxx_binary = stats.get("Forecast Binary")
+            for r in radii:
+                if stats != None:
+                    FSS = fractions_skill_score_SPECIAL(obs_binary, fxx_binary, domains, radius=r)
+                    write_table_to_file(FSS, DATE, write_domains, SAVEDIR='./HRRR_GLM_Fractions_Skill_Score_r%02d/' % r)
+                else:
+                    write_table_to_file(None, DATE, write_domains, SAVEDIR='./HRRR_GLM_Fractions_Skill_Score_r%02d/' % r)
+    return 'Finished %s' % len(DATES)
+    
 
 if __name__ == '__main__':
     
@@ -238,18 +273,33 @@ if __name__ == '__main__':
     host = socket.gethostname().split('.')[0]
 
     if host == 'wx1':
-        months = [5]
+        months = range(10,11)
+        hours = range(0,2)
     elif host == 'wx2':
-        months = [6]
+        months = range(5,11)
+        hours = range(2,4)
     elif host == 'wx3':
-        months = [7]
+        months = range(5,11)
+        hours = range(4,6)
     elif host == 'wx4':
-        months = [8]
+        months = range(5,11)
+        hours = range(6,8)
     elif host == 'meso3':
-        months = [9]
+        months = range(5,11)
+        #hours = range(8,12)
+        hours = range(16,20)
     elif host == 'meso4':
-        months = [10]
+        months = range(5,11)
+        #hours = range(12,16)
+        hours = range(20,24)
 
-    inputs = [(year, month, hour) for month in months for hour in hours]
+        months = range(5,11)
+        hours = range(24)
+
     
-    list(map(write_to_files_MP, inputs))
+    #radii = [5, 10]
+    radii = [20, 40]
+
+    inputs = [(year, month, hour, radii) for month in months for hour in hours]
+        
+    status = list(map(write_to_files_MP, inputs))

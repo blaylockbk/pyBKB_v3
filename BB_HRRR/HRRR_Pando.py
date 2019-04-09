@@ -11,8 +11,8 @@ Contents:
     get_hrrr_all_valid()           - Return a 3D array of all forecasts at a valid datetime.
 
     pluck_hrrr_point()             - Returns valid time and plucked value from lat/lon
-    hrrr_subset                    - Returns a subset of the model domain
-    hrrr_area_stats                - Returns statistics for the subset
+    hrrr_subset()                  - Returns a subset of the model domain
+    hrrr_area_stats()              - Returns statistics for the subset
 
     pluck_point_MultiPro()         - Feeds variables from multiprocessing for timeseries
     pluck_LocDic_MultiPro()        - Feeds variables from multiprocessing for timeseries for a Location Dictionary

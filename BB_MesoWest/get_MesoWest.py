@@ -129,7 +129,7 @@ def get_mesowest_ts(stationID, sDATE, eDATE,
         # Station metadata
         stn = data['STATION'][0]
         return_this['URL'] = URL
-        return_this['NAME'] = str(['NAME'])
+        return_this['NAME'] = str(stn['NAME'])
         return_this['STID'] = str(stn['STID'])
         return_this['LAT'] = float(stn['LATITUDE'])
         return_this['LON'] = float(stn['LONGITUDE'])
@@ -138,6 +138,7 @@ def get_mesowest_ts(stationID, sDATE, eDATE,
 
         # Dynamically create keys in the dictionary for each requested variable
         for v in stn['SENSOR_VARIABLES']:
+            print('v is: %s' % v)
             if v == 'date_time':
                 # Convert date strings to a datetime object
                 dates = data["STATION"][0]["OBSERVATIONS"]["date_time"]
@@ -152,8 +153,8 @@ def get_mesowest_ts(stationID, sDATE, eDATE,
                 # has more than one sensor. Deafult, set_num=0, will grab the
                 # first (either _set_1 or _set_1d).
                 key_name = str(v)
-                grab_this_set = np.sort(list(stn['SENSOR_VARIABLES'][key_name]))[set_num]                
-                if verbose: 
+                grab_this_set = np.sort(list(stn['SENSOR_VARIABLES'][key_name]))[set_num]
+                if verbose:
                     print('    Used %s' % grab_this_set)
                 variable_data = stn['OBSERVATIONS'][grab_this_set]
                 return_this[key_name] = np.array(variable_data, dtype=np.float)

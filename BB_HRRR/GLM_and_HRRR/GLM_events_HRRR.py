@@ -47,7 +47,10 @@ print('Forecasts', list(fxx))
 
 ## Generate Domain Paths and Domain Masks
 print('Generate domains and masks.')
-domains = get_domains()
+
+domains = get_domains(add_states=['UT', 'CO', 'TX', 'FL'], HRRR_specific=True)
+#domains = get_domains(add_states=['CO', 'TX', 'FL'], HRRR_specific=False)
+print(domains.keys())
 
 
 def get_GLM_HRRR_contingency_stats(validDATE, fxx=range(1,19)):
@@ -68,7 +71,7 @@ def get_GLM_HRRR_contingency_stats(validDATE, fxx=range(1,19)):
 
     ##=============================================================================
     ## 1) Get GLM Events for the previous hour.
-    print('(1/7) Get GLM Events.')
+    print('(1/7) Get GLM Events. %s' % validDATE)
     files = get_GLM_file_nearesttime(validDATE-timedelta(minutes=30), window=30, verbose=False)
     E = accumulate_GLM_FAST(files, data_type='event', verbose=False)
     
@@ -193,54 +196,59 @@ def plot_map(O_binary, F_binary):
     plt.show()
 
 
-def write_table_to_file(contingency_dict, DATE, SAVEDIR = './HRRR_GLM_contingency_table/'):
+def write_table_to_file(contingency_dict, DATE, write_domains, SAVEDIR = './HRRR_GLM_contingency_table/'):
     """
     Inputs:
         contingency_dict - the dictionary returned from
                            get_GLM_HRRR_contingency_stats()
+        DATE             -
+        write_domains    - list of which domains to write data to file.
+                           (prevents double-recording if the domain already 
+                            has this line)
     """
     for DOMAIN in domains:
-        # Directories for each Domain
-        DOM_DIR = "%s/%s/" % (SAVEDIR, DOMAIN)
-        if not os.path.exists(DOM_DIR):
-            os.makedirs(DOM_DIR)
-        
-        SAVEFILE = "%s/%s_%s.csv" % (DOM_DIR, DOMAIN, DATE.strftime('%Y_m%m_h%H')) 
-        
-        # Initiate new file with header if the day of the month is 1.
-        if DATE.day == 1:
-            A_str = ','.join(['F%02d_A' % i for i in fxx])
-            B_str = ','.join(['F%02d_B' % i for i in fxx])
-            C_str = ','.join(['F%02d_C' % i for i in fxx])
-            D_str = ','.join(['F%02d_D' % i for i in fxx])
-            HEADER = 'DATE,GLM Event COUNT,NUM FILES,EXPECTED FILES,' + A_str + ',' + B_str + ',' + C_str + ',' + D_str
-            with open(SAVEFILE, "w") as f:
-                f.write('%s\n' % HEADER)
+        if DOMAIN in write_domains:
+            # Directories for each Domain
+            DOM_DIR = "%s/%s/" % (SAVEDIR, DOMAIN)
+            if not os.path.exists(DOM_DIR):
+                os.makedirs(DOM_DIR)
+            
+            SAVEFILE = "%s/%s_%s.csv" % (DOM_DIR, DOMAIN, DATE.strftime('%Y_m%m_h%H')) 
+            
+            # Initiate new file with header if the day of the month is 1.
+            if DATE.day == 1:
+                A_str = ','.join(['F%02d_A' % i for i in fxx])
+                B_str = ','.join(['F%02d_B' % i for i in fxx])
+                C_str = ','.join(['F%02d_C' % i for i in fxx])
+                D_str = ','.join(['F%02d_D' % i for i in fxx])
+                HEADER = 'DATE,GLM Event COUNT,NUM FILES,EXPECTED FILES,' + A_str + ',' + B_str + ',' + C_str + ',' + D_str
+                with open(SAVEFILE, "w") as f:
+                    f.write('%s\n' % HEADER)
 
-        if contingency_dict is None:
-            A_str = ','.join(np.array(np.ones_like(fxx)*np.nan, dtype=str))
-            B_str = ','.join(np.array(np.ones_like(fxx)*np.nan, dtype=str))
-            C_str = ','.join(np.array(np.ones_like(fxx)*np.nan, dtype=str))
-            D_str = ','.join(np.array(np.ones_like(fxx)*np.nan, dtype=str))
-            line = "%s,%s,%s,%s,%s,%s,%s,%s" % (DATE, 
-                                                np.nan,
-                                                0,   # None returned because GLM files was zero
-                                                180, # We expected 180 GLM files
-                                                A_str, B_str, C_str, D_str)
-        else:
-            A, B, C, D =  contingency_dict['table'][DOMAIN]
-            A_str = ','.join(np.array(A, dtype=str))
-            B_str = ','.join(np.array(B, dtype=str))
-            C_str = ','.join(np.array(C, dtype=str))
-            D_str = ','.join(np.array(D, dtype=str))
-            line = "%s,%s,%s,%s,%s,%s,%s,%s" % (DATE, 
-                                                contingency_dict['Number Events'][DOMAIN],
-                                                contingency_dict['Number GLM Files'],
-                                                contingency_dict['Number Expected Files'],
-                                                A_str, B_str, C_str, D_str)
-        with open(SAVEFILE, "a") as f:
-            f.write('%s\n' % line)
-        print('Wrote to', SAVEFILE)
+            if contingency_dict is None:
+                A_str = ','.join(np.array(np.ones_like(fxx)*np.nan, dtype=str))
+                B_str = ','.join(np.array(np.ones_like(fxx)*np.nan, dtype=str))
+                C_str = ','.join(np.array(np.ones_like(fxx)*np.nan, dtype=str))
+                D_str = ','.join(np.array(np.ones_like(fxx)*np.nan, dtype=str))
+                line = "%s,%s,%s,%s,%s,%s,%s,%s" % (DATE, 
+                                                    np.nan,
+                                                    0,   # None returned because GLM files was zero
+                                                    180, # We expected 180 GLM files
+                                                    A_str, B_str, C_str, D_str)
+            else:
+                A, B, C, D =  contingency_dict['table'][DOMAIN]
+                A_str = ','.join(np.array(A, dtype=str))
+                B_str = ','.join(np.array(B, dtype=str))
+                C_str = ','.join(np.array(C, dtype=str))
+                D_str = ','.join(np.array(D, dtype=str))
+                line = "%s,%s,%s,%s,%s,%s,%s,%s" % (DATE, 
+                                                    contingency_dict['Number Events'][DOMAIN],
+                                                    contingency_dict['Number GLM Files'],
+                                                    contingency_dict['Number Expected Files'],
+                                                    A_str, B_str, C_str, D_str)
+            with open(SAVEFILE, "a") as f:
+                f.write('%s\n' % line)
+            print('Wrote to', SAVEFILE)
 
 def write_to_files_MP(inputs):
     year, month, hour = inputs
@@ -251,8 +259,8 @@ def write_to_files_MP(inputs):
     else:
         eDATE = datetime(year, month+1, 1, hour)
         
-    days = int((eDATE-sDATE).days)
-    DATES = [sDATE+timedelta(days=d) for d in range(days)]
+    #days = int((eDATE-sDATE).days)
+    #DATES = [sDATE+timedelta(days=d) for d in range(days)]
     #
     print('\n')
     print('=========================================================')
@@ -261,11 +269,50 @@ def write_to_files_MP(inputs):
     print('=========================================================')
     print('=========================================================')
     #
+    ### Check if the file we are working on exists
     #
-    for DATE in DATES:        
-        # Get Hit Rate Data for each domain Path
-        contingency_dict = get_GLM_HRRR_contingency_stats(DATE, fxx)
-        write_table_to_file(contingency_dict, DATE)
+    SAVEDIR = './HRRR_GLM_contingency_table/'
+
+    DOMAINS = ['Utah', 'Colorado', 'Texas', 'Florida', 'HRRR', 'West', 'Central', 'East']
+    FILES = ["%s/%s/%s_%s.csv" % (SAVEDIR, D, D, sDATE.strftime('%Y_m%m_h%H')) for D in DOMAINS]
+    EXISTS = [os.path.exists(i) for i in FILES]
+
+    Next_DATE = []
+    for (F, E) in zip(FILES, EXISTS):
+        if E:
+            last = np.genfromtxt(F, delimiter=',', names=True, encoding='UTF-8', dtype=None)['DATE'][-1]
+            Next_DATE.append(datetime.strptime(last, '%Y-%m-%d %H:%M:%S')+timedelta(days=1))
+        else:
+            Next_DATE.append(sDATE)
+
+    # Does the last date equal to the last day of the month of interest?
+    have_all_dates = np.array(Next_DATE) == eDATE
+
+    DOM_DATES = []
+    for i in Next_DATE:
+        next_sDATE = i
+        days = int((eDATE-next_sDATE).days)
+        DATES = [next_sDATE+timedelta(days=d) for d in range(days)]
+        DOM_DATES.append(DATES)
+
+    days = int((eDATE-sDATE).days)
+    DATES = [sDATE+timedelta(days=d) for d in range(days)]
+
+    for DATE in DATES:
+        print(DATE)
+        write_domains = []
+        for (DOM, DOM_DD) in zip(DOMAINS,DOM_DATES):
+            # Do we need this date?
+            if DATE in DOM_DD:
+                write_domains.append(DOM)
+            #print('%s, %s' % (DOM, DD in DOM_DD))
+        if len(write_domains) != 0:
+            print(write_domains)
+            contingency_dict = get_GLM_HRRR_contingency_stats(DATE)
+            write_table_to_file(contingency_dict, DATE, write_domains)
+            print()
+
+    return 'Finished %s' % len(DATES)    
         
 
 ###############################################################################
@@ -301,8 +348,8 @@ if __name__ == '__main__':
         months = [10]
         hours = range(24)
     elif host == 'meso4':
-        months = [8]
-        hours = [23]
+        months = [5]
+        hours = range(24)
     
     print('\n     =======================================')
     print('        HOST: %s, MONTHS: %s HOURS: %s' % (host, months, hours))
@@ -310,5 +357,6 @@ if __name__ == '__main__':
 
 
     inputs = [(year, month, hour) for month in months for hour in hours]
+    #inputs += [(year, month, hour) for month in range(7,11) for hour in range(24)]
 
-    list(map(write_to_files_MP, inputs))
+    this = list(map(write_to_files_MP, inputs))
