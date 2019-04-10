@@ -6,23 +6,24 @@ Get data from a HRRR grib2 file on the MesoWest HRRR Pando Archive
 Requires cURL, wgrib2, and pygrib
 
 Contents:
-    get_hrrr_variable()            - Returns dict of single HRRR variable.
-    get_hrrr_latlon()              - Return a dict of the CONUS HRRR grid lat/lon.
-    get_hrrr_all_valid()           - Return a 3D array of all forecasts at a valid datetime.
+    get_hrrr_variable()        - Returns dict of single HRRR variable.
+    get_hrrr_latlon()          - Return a dict of the CONUS HRRR grid lat/lon.
+    get_hrrr_all_valid()       - Return a 3D array of all forecasts at a valid datetime.
+    get_hrrr_all_run()         - Return a 3D array of all forecasts from a single run.
 
-    pluck_hrrr_point()             - Returns valid time and plucked value from lat/lon
-    hrrr_subset()                  - Returns a subset of the model domain
-    hrrr_area_stats()              - Returns statistics for the subset
+    pluck_hrrr_point()         - Returns valid time and plucked value from lat/lon
+    hrrr_subset()              - Returns a subset of the model domain
+    hrrr_area_stats()          - Returns statistics for the subset
 
-    pluck_point_MultiPro()         - Feeds variables from multiprocessing for timeseries
-    pluck_LocDic_MultiPro()        - Feeds variables from multiprocessing for timeseries for a Location Dictionary
+    pluck_point_MultiPro()     - Feeds variables from multiprocessing for timeseries
+    pluck_LocDic_MultiPro()    - Feeds variables from multiprocessing for timeseries for a Location Dictionary
 
-    point_hrrr_time_series()       - Returns HRRR time series at a single point in the domain.
-    LocDic_hrrr_time_series()      - Returns dictionary of the HRRR timeseries at multiple points.
-    point_hrrr_pollywog()          - Returns HRRR pollywog at a single point in the domain.
-    LocDic_hrrr_pollywog()         - Returns dictionary of the HRRR pollywog at multiple points
+    point_hrrr_time_series()   - Returns HRRR time series at a single point in the domain.
+    LocDic_hrrr_time_series()  - Returns dictionary of the HRRR timeseries at multiple points.
+    point_hrrr_pollywog()      - Returns HRRR pollywog at a single point in the domain.
+    LocDic_hrrr_pollywog()     - Returns dictionary of the HRRR pollywog at multiple points
 
-    LocDic_hrrr_hovmoller          - A hovmoller array to show all forecasts at each valid time.
+    LocDic_hrrr_hovmoller      - A hovmoller array to show all forecasts at each valid time.
 
 The difference between a time series and a pollywog is that:
     - a time series is for the all analyses (f00) or all forecast hours (fxx) for multiple runs
@@ -282,8 +283,8 @@ def get_hrrr_variable(DATE, variable,
         if value_only:
             if variable.split(':')[0] == 'UVGRD':
                 return_this = {'UGRD': grbs[1].values,
-                                'VGRD': grbs[2].values,
-                                'SPEED': wind_uv_to_spd(grbs[1].values, grbs[2].values)}
+                               'VGRD': grbs[2].values,
+                               'SPEED': wind_uv_to_spd(grbs[1].values, grbs[2].values)}
             else:
                 value = grbs[1].values
                 if variable=='REFC:entire':
@@ -426,11 +427,74 @@ def get_hrrr_all_valid(validDATE, variable, fxx=range(19), verbose=False):
     else:
         return np.array(HH)
 
-    if any([type(i)==np.ma.core.MaskedArray for i in HH]):
-        aa = np.ma.array(HH)
-    else:
-        bb = np.array(HH)
 
+###############################################################################
+###############################################################################
+
+def get_hrrr_all_run_MP(inputs):
+    """
+    Return a forecast for a run time.
+    Input: (runDATE, VAR, fxx, verbose)
+    """
+    runDATE, VAR, fxx, verbose = inputs
+    #
+    if VAR.split(':')[0] == 'UVGRD':
+        data = get_hrrr_variable(runDATE, VAR, fxx=fxx, value_only=True, verbose=verbose)
+        try:
+            return [data['UGRD'], data['VGRD'], data['SPEED']]
+        except:
+            return [np.nan, np.nan, np.nan]
+    else:
+        return get_hrrr_variable(runDATE, VAR, fxx=fxx, value_only=True, verbose=verbose)['value']
+
+
+def get_hrrr_all_run(runDATE, variable, fxx=range(19), verbose=False):
+    """
+    Return a 3D array with all forecasts for a single run time.
+    This is about seven times faster than using a simple list comprehension.
+    #
+    Input:
+          runDATE - datetime for the model run of interest
+        variable  - HRRR variable string (e.g. 'TMP:2 m')
+        fxx       - forecast hours you want to retrieve. Default 0-18.
+    #
+    Return:
+        3D array of the forecasts for the requested valid time. The first
+        dimension matches the leadtime of each fxx.
+    """
+    inputs = [[runDATE, variable, f, verbose] for f in fxx]
+    #
+    # Don't use more cores than needed, and don't use all available cores
+    cores = np.minimum(len(range(19)), multiprocessing.cpu_count()-1)
+    with multiprocessing.Pool(19) as p:
+        HH = p.map(get_hrrr_all_run_MP, inputs)
+        p.close()
+        p.join()
+    #
+    # Special case for UVGRD
+    if variable.split(':')[0] == 'UVGRD':
+        # If the returned value was nan, then make an array full of nans
+        for i, hh in enumerate(HH):
+            if np.shape(hh) == (3,):
+                fill = np.ones([1059, 1799])*np.nan
+                HH[i] = [fill, fill, fill]
+        #
+        HH_u = [HH[f][0][:] for f in fxx]
+        HH_v = [HH[f][1][:] for f in fxx]
+        HH_spd = [HH[f][2][:] for f in fxx]
+        #
+        print('Return in order [HH_ugrd, HH_vgrd, HH_speed]')
+        return [HH_u, HH_v, HH_spd]
+    else:
+        # If the returned value is nan, then make an array full of nans
+        for i, hh in enumerate(HH):
+            if np.shape(hh) == ():
+                HH[i] = np.ones([1059, 1799])*np.nan
+        # Return a masked array it the original had masked arrays.
+        if any([type(i)==np.ma.core.MaskedArray for i in HH]):
+            return np.ma.array(HH)
+        else:
+            return np.array(HH)
 
 ###############################################################################
 ###############################################################################
