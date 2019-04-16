@@ -41,7 +41,7 @@ import sys
 sys.path.append('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/')
 sys.path.append('B:\pyBKB_v3')
 
-def get_GLM_file_nearesttime(DATE, window=0, verbose=True):
+def get_GLM_file_nearesttime(DATE, satellite=16, window=0, verbose=True):
     """
     Get the file path+name for the GLM file nearest to a specified date. Will
     return a list of nearby files according to the window argument.
@@ -50,20 +50,23 @@ def get_GLM_file_nearesttime(DATE, window=0, verbose=True):
     DATE+20 seconds.
 
     Input:
-        DATE   - Datetime object for the date you want to find the nearest GLM
-                 file available.
-        window - Number of minutes +/- the requested nearest DATE.
-                 Default is 0 and only returns the nearest file.
+        DATE      - Datetime object for the date you want to find the nearest GLM
+                    file available.
+        satellite - 16 or 17, for GOES 16 or GOES 17. Default is 16
+        window    - Number of minutes +/- the requested nearest DATE.
+                    Default is 0 and only returns the nearest file.
     
     Return:
         A list of file paths+names of GLM files.
     """
+    assert satellite in [16, 17], ('satellite must be 16 or 17')
+
     # Number of expected files 
     expected = window*3*2
     
     # List available files for the requested datetime and include files for
     # +/- 1 hour
-    HG7 = '/uufs/chpc.utah.edu/common/home/horel-group7/Pando/GOES16/GLM-L2-LCFA/'
+    HG7 = '/uufs/chpc.utah.edu/common/home/horel-group7/Pando/GOES%s/GLM-L2-LCFA/' % satellite
     ls1 = HG7+'%s/' % (DATE-timedelta(hours=1)).strftime('%Y%m%d/%H')
     ls2 = HG7+'%s/' % DATE.strftime('%Y%m%d/%H')
     ls3 = HG7+'%s/' % (DATE+timedelta(hours=1)).strftime('%Y%m%d/%H')

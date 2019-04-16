@@ -10,11 +10,11 @@ Notes: There are issues with plotting boundaries
   high enough resolution that it doesn't match up with COASTLINES and STATES.
 - The Great Salt Lake boundary is wrong. It looked better in Basemap.
 
-load_states
-load_counties
-
 proj_HRRR
 proj_GOES16
+
+load_states
+load_counties
 """
 
 import platform
@@ -22,22 +22,34 @@ import cartopy.crs as ccrs # Cartopy Coordinate Reference System
 import cartopy.feature as cfeature
 from cartopy.io.shapereader import Reader
 
+# PlateCarree coordinate system for Latitude/Longitude values. I use this so
+# so just import it, i.e. `from BB_maps.my_cartopy import PC`
+PC = ccrs.PlateCarree()
+
+def extent_HRRR(ax):
+    """
+    NOTE: This is the best way I know how to set the extent...
+        ax.set_extent = ([-122.72, -72.29, 24.36, 51.4], crs=ccrs.PlateCarree())
+    """
+    ax.set_extent([-122.72, -72.29, 24.36, 50.45], crs=PC)
+
 
 def proj_HRRR():
-  lccProjParams_HRRR = {'central_latitude'   : -38.5,        # same as lat_0
-                        'central_longitude'  : -97.5,        # same as lon_0
-                        'standard_parallels' : (38.5, 38.5), # same as (lat_1, lat_2)
-                       }
-  return ccrs.LambertConformal(**lccProjParams_HRRR)
+    """The High-Resolution Rapid Refresh model projection"""
+    lccProjParams_HRRR = {'central_latitude'   : -38.5,        # same as lat_0
+                          'central_longitude'  : -97.5,        # same as lon_0
+                          'standard_parallels' : (38.5, 38.5)} # same as (lat_1, lat_2)
+    return ccrs.LambertConformal(**lccProjParams_HRRR)
 
 def proj_GOES16():
-  geostationaryProjParams_GOES16 = {'central_longitude' : -75.0,
-                                    'satellite_height' : 35786023.0,
-                                    'sweep_axis' : 'x'
-                                   }
-  return ccrs.Geostationary(**geostationaryProjParams_GOES16)
+    geostationaryProjParams_GOES16 = {'central_longitude' : -75.0,
+                                      'satellite_height' : 35786023.0,
+                                      'sweep_axis' : 'x'}
+    return ccrs.Geostationary(**geostationaryProjParams_GOES16)
 
 
+##=============================================================================
+##=============================================================================
 
 def load_states(projection, resolution='500k'):
     """
@@ -50,9 +62,9 @@ def load_states(projection, resolution='500k'):
                  '20m' is the lowest resolution
     """
     if platform.system() == 'Linux':
-      source = '/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/BB_maps/shapefiles/cb_2017_us_state_%s/cb_2017_us_state_%s.shp' % (resolution, resolution)
+        source = '/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/BB_maps/shapefiles/cb_2017_us_state_%s/cb_2017_us_state_%s.shp' % (resolution, resolution)
     else:
-      source = 'C:\\Users\\blaylockbk\\OneDrive\\Documents\\pyBKB_v3\\BB_maps\\shapefiles\\cb_2017_us_state_%s\\cb_2017_us_state_%s.shp' % (resolution, resolution)
+        source = 'C:\\Users\\blaylockbk\\OneDrive\\Documents\\pyBKB_v3\\BB_maps\\shapefiles\\cb_2017_us_state_%s\\cb_2017_us_state_%s.shp' % (resolution, resolution)
     return cfeature.ShapelyFeature(Reader(source).geometries(),
                                    projection, facecolor='none')
 
@@ -68,9 +80,9 @@ def load_counties(projection, resolution='500k'):
                  '20m' is the lowest resolution
     """
     if platform.system() == 'Linux':
-      source = '/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/BB_maps/shapefiles/cb_2017_us_county_%s/cb_2017_us_county_%s.shp' % (resolution, resolution)
+        source = '/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/BB_maps/shapefiles/cb_2017_us_county_%s/cb_2017_us_county_%s.shp' % (resolution, resolution)
     else:
-      source = 'C:\\Users\\blaylockbk\\OneDrive\\Documents\\pyBKB_v3\\BB_maps\\shapefiles\\cb_2017_us_county_%s\\cb_2017_us_county_%s.shp' % (resolution, resolution)
+        source = 'C:\\Users\\blaylockbk\\OneDrive\\Documents\\pyBKB_v3\\BB_maps\\shapefiles\\cb_2017_us_county_%s\\cb_2017_us_county_%s.shp' % (resolution, resolution)
     return cfeature.ShapelyFeature(Reader(source).geometries(),
                                    projection, facecolor='none')
 
