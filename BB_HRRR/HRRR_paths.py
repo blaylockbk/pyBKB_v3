@@ -16,6 +16,13 @@ import requests
 import sys
 sys.path.append('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/')
 from BB_HRRR.HRRR_Pando import get_hrrr_latlon
+from geojson_area.area import area
+
+all_states = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', \
+              'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', \
+              'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', \
+              'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', \
+              'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY']
 
 # Get HRRR latitude and longitude grids
 Hlat, Hlon = get_hrrr_latlon(DICT=False)
@@ -28,10 +35,13 @@ def read_GeoJSON(state):
     f = requests.get(URL)
     return f.json()
 
-def get_domains(add_states=None, HRRR_specific=True):
+def get_domains(add_states=None, HRRR_specific=True, compute_area=True):
     '''
-    add_states is a list of state abbreviations, i.e. add_states=['UT', 'CO', 'TX']
-    NOTE: Has some issues with some states where there are multiple objects.
+    Input:
+        add_states    - A list of state abbreviations, i.e. add_states=['UT', 'CO', 'TX']
+                        NOTE: Has some issues with some states where there are multiple objects.
+        HRRR_specific - Paths for HRRR, West, Central, and East domains
+        compute_area  - Return the approximate area of the path.
     '''
     
     ## Create Path boundaries of HRRR domain and subdomains of interest:
@@ -55,6 +65,8 @@ def get_domains(add_states=None, HRRR_specific=True):
     # Add paths for each state requested
     if add_states != None:
         for i in add_states:
+            i = i.upper()
+            assert i in all_states, "'%s' is not an abbreviated state" % i
             data = read_GeoJSON(i)
             state = data['features'][0]['properties']['name']
             coords = data['features'][0]['geometry']['coordinates']
@@ -72,7 +84,7 @@ def get_domains(add_states=None, HRRR_specific=True):
                 domains[state] = {'lon': np.array(coords[idx])[:,0],
                                   'lat': np.array(coords[idx])[:,1]}
     ##
-    ## Generate Path objects from the vertices.
+    ## Generate Path objects from the vertices and compute area if true.
     ## 
     for i in domains:
         domains[i]['path'] = Path(list(zip(domains[i]['lon'], domains[i]['lat'])))
@@ -83,6 +95,13 @@ def get_domains(add_states=None, HRRR_specific=True):
             not_in_path = np.invert(in_path)
             not_in_path = not_in_path.reshape(np.shape(Hlat))
             domains[i]['mask'] = not_in_path
+        
+        if compute_area:
+            data = {'type':'Polygon',
+                    'coordinates': [[tuple(i) for i in domains[i]['path'].vertices]]}
+            this_area = area(data)
+            print('%s Area in meters squared: %s' % (i, this_area))
+            domains[i]['area'] = this_area
     #
     return domains
 

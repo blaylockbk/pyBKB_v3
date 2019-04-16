@@ -17,7 +17,14 @@ Basemap is so handy!
 
 from mpl_toolkits.basemap import Basemap
 import numpy as np
+import os
 
+## Abbreviated State Names
+all_states = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', \
+              'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', \
+              'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', \
+              'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', \
+              'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY']
 
 
 def draw_centermap(center, size=(3,3), resolution='i', area_thresh=2000):
@@ -44,7 +51,7 @@ def draw_centermap(center, size=(3,3), resolution='i', area_thresh=2000):
             from BB_MesoWest.get_MesoWest import get_mesowest_stninfo
             a = get_mesowest_stninfo(center)
             if a != 'ERROR':
-                lat, lon = a['WBB']['latitude'], a['WBB']['longitude']
+                lat, lon = a[center]['latitude'], a[center]['longitude']
             else:
                 print('I am sorry. I do not under stand your request')
                 print('Input must be a (lat,lon) tuple, a state like "Utah", or a MesoWest ID')
@@ -74,10 +81,20 @@ def draw_HRRR_map(resolution='i', area_thresh=2000):
     Map specifications are from the HRRR's namelist.wps file:
     https://rapidrefresh.noaa.gov/hrrr/HRRR/static/HRRRv1/namelist.wps
     """
-    return Basemap(projection='lcc', resolution=resolution, area_thresh=area_thresh,
-                   width=1800*3000, height=1060*3000,
-                   lat_1=38.5, lat_2=38.5,
-                   lat_0=38.5, lon_0=-97.5)
+    FILE = '/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/BB_maps/saved_map_objects/HRRR_lcc_%s_%s.npy' % (resolution, area_thresh)
+    if os.path.exists(FILE):
+        m = np.load(FILE).item()
+        print('loaded %s map from file' % FILE)
+    else:
+        m = Basemap(projection='lcc', resolution=resolution, area_thresh=area_thresh,
+                    width=1800*3000, height=1060*3000,
+                    lat_1=38.5, lat_2=38.5,
+                    lat_0=38.5, lon_0=-97.5)
+        # Save the map object for later use
+        np.save(FILE, m)
+        print('saved %s map to file' % FILE)
+    ## Store map object in location dictionary
+    return m
 
 
 def draw_ALASKA_map(resolution='i', area_thresh=3000):
