@@ -121,9 +121,9 @@ def get_GLM_HRRR_contingency_stats(validDATE, fxx=range(1,19)):
     ## 6) Compute the GLM/HRRR contingency table for every requested forecast hour.
     # Two binary fields:
     #  1) HRRR yes/no lightning: Based on a threshold of >= 0.04 flashes/km2/5min.
-    #     Since each grid box is 9 km2, this value is 0.45 flashes/gridbox/5min.
+    #     Since each grid box is 9 km2, this value is 0.36 flashes/gridbox/5min.
     #     If the maximum lightning was sustained for the entire hour, we would
-    #     expect a maximum of about 6 flashes in that gridbox. This threshold was
+    #     expect a maximum of about 4-5 flashes in that gridbox. This threshold was
     #     used because it got rid of the "popcorn" thunderstorms.
     #  2) GLM yes/no event: Must have more than one event in the grid box.
 

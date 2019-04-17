@@ -22,16 +22,21 @@ import cartopy.crs as ccrs # Cartopy Coordinate Reference System
 import cartopy.feature as cfeature
 from cartopy.io.shapereader import Reader
 
-# PlateCarree coordinate system for Latitude/Longitude values. I use this so
-# so just import it, i.e. `from BB_maps.my_cartopy import PC`
-PC = ccrs.PlateCarree()
+# Plate Carree coordinate system for Latitude/Longitude values. I use this so
+# so just import it, i.e. `from BB_maps.my_cartopy import pc`
+pc = ccrs.PlateCarree()
+
 
 def extent_HRRR(ax):
     """
     NOTE: This is the best way I know how to set the extent...
         ax.set_extent = ([-122.72, -72.29, 24.36, 51.4], crs=ccrs.PlateCarree())
     """
-    ax.set_extent([-122.72, -72.29, 24.36, 50.45], crs=PC)
+    ax.set_extent([-122.72, -72.29, 24.36, 50.45], crs=pc)
+
+
+def extend_Utah(ax):
+    ax.set_extent([-114.75, 108.25, 36, 43], crs=pc)
 
 
 def proj_HRRR():
