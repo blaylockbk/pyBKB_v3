@@ -113,11 +113,26 @@ def fractions_skill_score_SPECIAL(obs_binary, fxx_binary, domains,
         fxx_list = [[n, fxx_b, 'radius', radius] for n, fxx_b in enumerate(fxx_binary)]
         
     # Multiprocessing function for each forecast hour
-    cores = np.minimum(len(fxx_binary), multiprocessing.cpu_count()-2)
-    with multiprocessing.Pool(cores) as p:
-        fxx_fracs = np.array(p.map(FSS_MP, fxx_list))
-        p.close()
-        p.join()
+        
+    if radius != None and radius > 50:
+        ## Probably won't have enough memory to handle large neighborhood, so 
+        ## If radius > 50, then scale the number of processors based on the 
+        ## machine's total memory allocating each process 5 gb of memory.
+        import psutil
+        memory_gb = (psutil.virtual_memory().total/1e9-2)
+        cores = int(memory_gb/5)
+        print('Memory Limited: Only use %s cpus' % cores)
+        with multiprocessing.Pool(cores) as p:
+            fxx_fracs = np.array(p.map(FSS_MP, fxx_list))
+            p.close()
+            p.join()
+    else:
+        # Use up to 18 cores
+        cores = np.minimum(len(fxx_binary), multiprocessing.cpu_count()-2)
+        with multiprocessing.Pool(cores) as p:
+            fxx_fracs = np.array(p.map(FSS_MP, fxx_list))
+            p.close()
+            p.join()
 
     # We want to return these values for later use if needed
     return_this['Observed Fraction'] = obs_fracs
@@ -259,8 +274,8 @@ if __name__ == '__main__':
                                                      m, Hlat, Hlon, domains
 
     ## Specify the valid Datetime of interest
-    #DATE = datetime(2018, 5, 14, 22) # Mallard Fire
-    #DATE = datetime(2018, 7, 5, 23) # Lake Christine
+    #DATE = datetime(2018, 5, 16, 2) # Mallard Fire
+    #DATE = datetime(2018, 7, 5, 21) # Lake Christine
     #DATE = datetime(2018, 7, 17, 6) # July Storm
     #DATE = datetime(2018, 7, 27, 0) # Missing GLM data
 
@@ -273,28 +288,34 @@ if __name__ == '__main__':
     host = socket.gethostname().split('.')[0]
 
     if host == 'wx1':
-        months = range(10,11)
-        hours = range(0,2)
+        months = [5]
+        hours = np.arange(23,12,-1)
     elif host == 'wx2':
-        months = range(5,11)
-        hours = range(2,4)
+        months = [7]
+        hours = [23,21,19,17,15,13,11,9,7]
+        radii = [80]
     elif host == 'wx3':
-        months = range(5,11)
-        hours = range(4,6)
+        months = [7]
+        hours = [22,20,18,16,14,12,10,8,6]
+        radii = [80]
     elif host == 'wx4':
-        months = range(5,11)
-        hours = range(6,8)
+        months = [6,8]
+        hours = [20,21,22,23] + list(range(24))
+        radii = [60,80]
     elif host == 'meso3':
         months = range(5,11)
-        hours = [22]
+        hours = range(24)
+        radii = [80]
     elif host == 'meso4':
-        months = range(5,11)
-        hours = [22]
+        months = [5]
+        hours = [2]
+        radii = [60, 80]
         
     
     #radii = [5, 10]
     #radii = [20, 40]
-    radii = [40]
+    #radii = [40]
+    
 
     inputs = [(year, month, hour, radii) for month in months for hour in hours]
         
