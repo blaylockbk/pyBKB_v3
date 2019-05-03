@@ -29,10 +29,12 @@ pc = ccrs.PlateCarree()
 
 def extent_HRRR(ax):
     """
-    NOTE: This is the best way I know how to set the extent...
-        ax.set_extent = ([-122.72, -72.29, 24.36, 51.4], crs=ccrs.PlateCarree())
+    This is a manual hack because I can't figure out how cartopy's set_extent
+    function works!!! 😢
     """
-    ax.set_extent([-122.72, -72.29, 24.36, 50.45], crs=pc)
+    
+    ax1.set_extent([-124.1, -71.1, 24.2, 50.5], crs=pc)
+    
 
 
 def extend_Utah(ax):

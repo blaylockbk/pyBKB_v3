@@ -289,34 +289,30 @@ if __name__ == '__main__':
 
     if host == 'wx1':
         months = [5]
-        hours = np.arange(23,12,-1)
+        hours = range(12)
     elif host == 'wx2':
-        months = [7]
-        hours = [23,21,19,17,15,13,11,9,7]
-        radii = [80]
-    elif host == 'wx3':
-        months = [7]
-        hours = [22,20,18,16,14,12,10,8,6]
-        radii = [80]
-    elif host == 'wx4':
-        months = [6,8]
-        hours = [20,21,22,23] + list(range(24))
-        radii = [60,80]
-    elif host == 'meso3':
-        months = range(5,11)
-        hours = range(24)
-        radii = [80]
-    elif host == 'meso4':
         months = [5]
-        hours = [2]
-        radii = [60, 80]
-        
+        hours = range(12,24)
+    elif host == 'wx3':
+        months = [10]
+        hours = range(12)
+    elif host == 'wx4':
+        months = [10]
+        hours = range(12,24)
+    elif host == 'meso3':
+        months = [7, 9]
+        hours = range(24)
+    elif host == 'meso4':
+        months = [6, 8]
+        hours = range(24)
+                
     
     #radii = [5, 10]
     #radii = [20, 40]
     #radii = [40]
+    radii = [60, 80]
     
 
-    inputs = [(year, month, hour, radii) for month in months for hour in hours]
+    inputs = [(year, month, hour, radii) for hour in hours for month in months ]
         
     status = list(map(write_to_files_MP, inputs))
