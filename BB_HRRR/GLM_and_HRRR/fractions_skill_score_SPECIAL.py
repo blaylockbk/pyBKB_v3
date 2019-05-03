@@ -223,7 +223,13 @@ def write_to_files_MP(inputs):
     Next_DATE = []
     for (F, E) in zip(FILES, EXISTS):
         if E:
-            last = np.genfromtxt(F, delimiter=',', names=True, encoding='UTF-8', dtype=None)['DATE'][-1]
+            list_DATES = np.genfromtxt(F, delimiter=',', names=True, encoding='UTF-8', dtype=None)['DATE']
+            if np.shape(list_DATES) == ():
+                # I suppose there is only one date in the list
+                last = str(list_DATES)
+            else:
+                # Else, get the last date in the list
+                last = list_DATES[-1]
             Next_DATE.append(datetime.strptime(last, '%Y-%m-%d %H:%M:%S')+timedelta(days=1))
         else:
             Next_DATE.append(sDATE)
