@@ -117,9 +117,9 @@ def fractions_skill_score_SPECIAL(obs_binary, fxx_binary, domains,
     if radius != None and radius > 50:
         ## Probably won't have enough memory to handle large neighborhood, so 
         ## If radius > 50, then scale the number of processors based on the 
-        ## machine's total memory allocating each process 5 gb of memory.
+        ## machine's available memory allocating each process 5 gb of memory.
         import psutil
-        memory_gb = (psutil.virtual_memory().total/1e9-2)
+        memory_gb = (psutil.virtual_memory().available/1e9-2)
         cores = int(memory_gb/5)
         print('Memory Limited: Only use %s cpus' % cores)
         with multiprocessing.Pool(cores) as p:
@@ -293,24 +293,27 @@ if __name__ == '__main__':
     import socket
     host = socket.gethostname().split('.')[0]
 
-    if host == 'wx1':
+    if host == 'meteo19':
+        months = [6, 7, 8, 9, 10, 5]
+        hours = [23, 22, 21, 20]
+    elif host == 'wx1':
         months = [5]
         hours = range(12)
     elif host == 'wx2':
         months = [5]
-        hours = range(12,24)
+        hours = range(12,20)
     elif host == 'wx3':
         months = [10]
         hours = range(12)
     elif host == 'wx4':
         months = [10]
-        hours = range(12,24)
+        hours = range(12, 20)
     elif host == 'meso3':
         months = [7, 9]
-        hours = range(24)
+        hours = range(20)
     elif host == 'meso4':
         months = [6, 8]
-        hours = range(24)
+        hours = range(20)
                 
     
     #radii = [5, 10]
