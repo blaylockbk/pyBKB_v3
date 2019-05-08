@@ -257,8 +257,9 @@ def write_to_files_MP(inputs):
             #print('%s, %s' % (DOM, DD in DOM_DD))
         if len(write_domains) != 0:
             print(write_domains)
-            # Get contingency stats, which contains the binary field:
+            # Get HRRR and GLM lightning binary fields
             stats = get_GLM_HRRR_contingency_stats(DATE)
+            
             if stats != None:
                 obs_binary = stats.get("Observed Binary")
                 fxx_binary = stats.get("Forecast Binary")
@@ -294,34 +295,37 @@ if __name__ == '__main__':
     host = socket.gethostname().split('.')[0]
 
     if host == 'meteo19':
-        months = [6, 7, 8, 9, 10, 5]
-        hours = [23, 22, 21, 20]
+        months = [7]
+        hours = [9, 12, 13, 20]
     elif host == 'wx1':
         months = [5]
-        hours = range(12)
+        hours = range(24)
     elif host == 'wx2':
-        months = [5]
-        hours = range(12,20)
+        months = [6]
+        hours = range(24)
     elif host == 'wx3':
-        months = [10]
-        hours = range(12)
+        months = [9]
+        hours = range(24)
     elif host == 'wx4':
         months = [10]
-        hours = range(12, 20)
+        hours = range(24)
     elif host == 'meso3':
-        months = [7, 9]
-        hours = range(20)
+        #months = [7, 9]
+        #hours = range(20)
+        months = [8]
+        hours = range(0,13)
     elif host == 'meso4':
-        months = [6, 8]
-        hours = range(20)
+        months = [8]
+        hours = range(13,24)
                 
     
     #radii = [5, 10]
     #radii = [20, 40]
     #radii = [40]
+    #radii = [60, 80]
     radii = [60, 80]
     
 
-    inputs = [(year, month, hour, radii) for hour in hours for month in months ]
+    inputs = [(year, month, hour, radii) for month in months for hour in hours]
         
     status = list(map(write_to_files_MP, inputs))

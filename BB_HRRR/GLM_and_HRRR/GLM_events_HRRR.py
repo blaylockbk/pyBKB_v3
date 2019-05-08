@@ -68,7 +68,18 @@ def get_GLM_HRRR_contingency_stats(validDATE, fxx=range(1,19)):
             recorded during the period, number of GLM files, number of expected
             GLM files for the period.
     '''
+    print(">>> get_GLM_HRRR_contingency_stats: %s" % validDATE)
+    
+    # Get contingency stats, which contains the binary field:
+    BASE = '/uufs/chpc.utah.edu/common/home/horel-group8/blaylock/GLM-HRRR_LTNG_binary/'
+    BINARY_FILE = BASE+'/HRRR-GLM-Binary_%s.npy' % validDATE.strftime('%Y-%m-%d_%H%M')
 
+    if os.path.exists(BINARY_FILE) and fxx==range(1,19):
+        print('>>Load binary stats from file', BINARY_FILE)
+        stats = np.load(BINARY_FILE).item()
+        return stats
+
+    print('>>No previous file saved. Need to generate binary stats right now...')
     ##=============================================================================
     ## 1) Get GLM Events for the previous hour.
     print('(1/7) Get GLM Events. %s' % validDATE)
@@ -157,6 +168,12 @@ def get_GLM_HRRR_contingency_stats(validDATE, fxx=range(1,19)):
         #
         return_this['table'][DOMAIN] = (A, B, C, D)
     print('(FIN)')
+
+    if fxx==range(1,19):
+        # Save the dictionary for later use
+        np.save(BINARY_FILE, return_this)
+        print('\n***Saved Binary Dictionary:', BINARY_FILE, '***\n')
+
     return return_this
 
 
