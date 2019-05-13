@@ -120,7 +120,13 @@ def fractions_skill_score_SPECIAL(obs_binary, fxx_binary, domains,
         ## machine's available memory allocating each process 5 gb of memory.
         import psutil
         memory_gb = (psutil.virtual_memory().available/1e9-2)
-        cores = int(memory_gb/5)
+        if radius >=60:
+            # Allocate 2 GB per job, but don't need more than 18
+            cores = np.minimum(int(memory_gb/2), len(fxx_binary))
+        if radius >=80:
+            # Allocate 5 GB per job, but don't need more than 18
+            cores = int(memory_gb/5)
+            cores = np.minimum(int(memory_gb/5), len(fxx_binary))
         print('Memory Limited: Only use %s cpus' % cores)
         with multiprocessing.Pool(cores) as p:
             fxx_fracs = np.array(p.map(FSS_MP, fxx_list))
@@ -158,7 +164,7 @@ def fractions_skill_score_SPECIAL(obs_binary, fxx_binary, domains,
     return return_this
 
 
-def write_table_to_file(FSS_dict, DATE, write_domains, fxx=range(1,19), SAVEDIR='./HRRR_GLM_Fractions_Skill_Score/'):
+def write_table_to_file(FSS_dict, DATE, write_domains, fxx=range(1,19), DATE_fmt='%Y-%m-%d %H:%M:%S', SAVEDIR='./HRRR_GLM_Fractions_Skill_Score/'):
     """
     Inputs:
         FSS - the dictionary returned from
@@ -182,10 +188,10 @@ def write_table_to_file(FSS_dict, DATE, write_domains, fxx=range(1,19), SAVEDIR=
             #
             if FSS_dict is None:
                 FSS_str = ','.join(np.array(np.ones_like(fxx)*np.nan, dtype=str))
-                line = "%s,%s" % (DATE, FSS_str)
+                line = "%s,%s" % (DATE.strftime(DATE_fmt), FSS_str)
             else:
                 FSS_str = ','.join(np.array(np.round(FSS_dict[DOMAIN], 4), dtype=str))
-                line = "%s,%s" % (DATE, FSS_str)
+                line = "%s,%s" % (DATE.strftime(DATE_fmt), FSS_str)
             with open(SAVEFILE, "a") as f:
                 f.write('%s\n' % line)
             print('Wrote to', SAVEFILE)
@@ -208,7 +214,7 @@ def write_to_files_MP(inputs):
     print('\n')
     print('=========================================================')
     print('=========================================================')
-    print('       WORKING ON MONTH %s and HOUR %s' % (month, hour))
+    print('       WORKING ON MONTH %s and HOUR %s Radii %s' % (month, hour, radii))
     print('=========================================================')
     print('=========================================================')
     #
@@ -230,9 +236,17 @@ def write_to_files_MP(inputs):
             else:
                 # Else, get the last date in the list
                 last = list_DATES[-1]
-            Next_DATE.append(datetime.strptime(last, '%Y-%m-%d %H:%M:%S')+timedelta(days=1))
+            try:
+                Next_DATE.append(datetime.strptime(last, '%Y-%m-%d %H:%M:%S')+timedelta(days=1))
+                DATE_fmt = '%Y-%m-%d %H:%M:%S'
+            except:
+                Next_DATE.append(datetime.strptime(last, '%m/%d/%Y %H:%M')+timedelta(days=1))
+                DATE_fmt = '%m/%d/%Y %H:%M'
+
         else:
             Next_DATE.append(sDATE)
+            DATE_fmt = '%Y-%m-%d %H:%M:%S'
+
 
     # Does the last date equal to the last day of the month of interest?
     have_all_dates = np.array(Next_DATE) == eDATE
@@ -266,9 +280,9 @@ def write_to_files_MP(inputs):
             for r in radii:
                 if stats != None:
                     FSS = fractions_skill_score_SPECIAL(obs_binary, fxx_binary, domains, radius=r)
-                    write_table_to_file(FSS, DATE, write_domains, SAVEDIR='./HRRR_GLM_Fractions_Skill_Score_r%02d/' % r)
+                    write_table_to_file(FSS, DATE, write_domains, DATE_fmt=DATE_fmt, SAVEDIR='./HRRR_GLM_Fractions_Skill_Score_r%02d/' % r)
                 else:
-                    write_table_to_file(None, DATE, write_domains, SAVEDIR='./HRRR_GLM_Fractions_Skill_Score_r%02d/' % r)
+                    write_table_to_file(None, DATE, write_domains, DATE_fmt=DATE_fmt, SAVEDIR='./HRRR_GLM_Fractions_Skill_Score_r%02d/' % r)
     return 'Finished %s' % len(DATES)
     
 
@@ -296,7 +310,7 @@ if __name__ == '__main__':
 
     if host == 'meteo19':
         months = [7]
-        hours = [9, 12, 13, 20]
+        hours = range(24)
     elif host == 'wx1':
         months = [5]
         hours = range(24)
@@ -310,22 +324,17 @@ if __name__ == '__main__':
         months = [10]
         hours = range(24)
     elif host == 'meso3':
-        #months = [7, 9]
-        #hours = range(20)
         months = [8]
         hours = range(0,13)
     elif host == 'meso4':
         months = [8]
         hours = range(13,24)
-                
-    
-    #radii = [5, 10]
-    #radii = [20, 40]
-    #radii = [40]
-    #radii = [60, 80]
-    radii = [60, 80]
-    
 
-    inputs = [(year, month, hour, radii) for month in months for hour in hours]
-        
-    status = list(map(write_to_files_MP, inputs))
+
+    radii = [5, 10, 20, 40, 60, 80]
+    radii = [60, 80]
+
+
+    for r in radii:
+        inputs = [(year, month, hour, [r]) for month in months for hour in hours]
+        status = list(map(write_to_files_MP, inputs))
