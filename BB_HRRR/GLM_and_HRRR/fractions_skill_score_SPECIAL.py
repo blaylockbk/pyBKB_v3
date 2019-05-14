@@ -325,7 +325,7 @@ if __name__ == '__main__':
         hours = range(24)
     elif host == 'meso3':
         months = [8]
-        hours = range(0,13)
+        hours = range(21, 22)
     elif host == 'meso4':
         months = [8]
         hours = range(13,24)

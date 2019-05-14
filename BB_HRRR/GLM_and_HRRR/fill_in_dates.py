@@ -58,12 +58,14 @@ def refill_dates(DOM, month, hour, radius):
                 if np.shape(list_DATES) == ():
                     print('no shape!!!')
                 else:
-                    try:
-                        DATES = np.array([datetime.strptime(D, '%Y-%m-%d %H:%M:%S') for D in list_DATES])
-                        DATE_fmt = '%Y-%m-%d %H:%M:%S'
-                    except:        
-                        DATES = np.array([datetime.strptime(D, '%m/%d/%Y %H:%M') for D in list_DATES])
-                        DATE_fmt = '%m/%d/%Y %H:%M'
+                    DATES = np.array([])
+                    for D in list_DATES:
+                        try:
+                            DATE_fmt = '%Y-%m-%d %H:%M:%S'
+                            DATES = np.append(DATES, datetime.strptime(D, DATE_fmt))
+                        except:        
+                            DATE_fmt = '%m/%d/%Y %H:%M'
+                            DATES = np.append(DATES, datetime.strptime(D, DATE_fmt))
                 #
                 # Is the expected date in the current file?
                 in_file = expected_DATE in DATES
@@ -127,8 +129,8 @@ if __name__=='__main__':
 
     #for radius in [5, 10, 20, 40, 60]:
     for radius in [80]:
-        for month in range(5,11):
-            for hour in range(24):
+        for month in range(8,9):
+            for hour in range(0,19):
                 refill_dates(DOM, month, hour, radius)
 
 
