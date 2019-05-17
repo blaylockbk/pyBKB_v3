@@ -53,7 +53,7 @@ domains = get_domains(add_states=['UT', 'CO', 'TX', 'FL'], HRRR_specific=True)
 print(domains.keys())
 
 
-def get_GLM_HRRR_contingency_stats(validDATE, fxx=range(1,19)):
+def get_GLM_HRRR_contingency_stats(validDATE, fxx=range(1,19), verbose=True):
     '''
     Inputs:
         validDATE - A datetime that represents the end of the hour.
@@ -68,40 +68,40 @@ def get_GLM_HRRR_contingency_stats(validDATE, fxx=range(1,19)):
             recorded during the period, number of GLM files, number of expected
             GLM files for the period.
     '''
-    print(">>> get_GLM_HRRR_contingency_stats: %s" % validDATE)
+    if verbose: print(">>> get_GLM_HRRR_contingency_stats: %s" % validDATE)
     
     # Get contingency stats, which contains the binary field:
     BASE = '/uufs/chpc.utah.edu/common/home/horel-group8/blaylock/GLM-HRRR_LTNG_binary/'
     BINARY_FILE = BASE+'/HRRR-GLM-Binary_%s.npy' % validDATE.strftime('%Y-%m-%d_%H%M')
 
     if os.path.exists(BINARY_FILE) and fxx==range(1,19):
-        print('>>Load binary stats from file', BINARY_FILE)
+        if verbose: print('>>Load binary stats from file', BINARY_FILE)
         stats = np.load(BINARY_FILE).item()
         return stats
 
-    print('>>No previous file saved. Need to generate binary stats right now...')
+    if verbose: print('>>No previous file saved. Need to generate binary stats right now...')
     ##=============================================================================
     ## 1) Get GLM Events for the previous hour.
-    print('(1/7) Get GLM Events. %s' % validDATE)
+    if verbose: print('(1/7) Get GLM Events. %s' % validDATE)
     files = get_GLM_file_nearesttime(validDATE-timedelta(minutes=30), window=30, verbose=False)
     E = accumulate_GLM_FAST(files, data_type='event', verbose=False)
     
-    print('\nGot %s of %s expected files.' % (files['Number'], files['Number Expected']))
+    if verbose: print('\nGot %s of %s expected files.' % (files['Number'], files['Number Expected']))
     if E == None:
         return None
-    print('Total Events: {:,}'.format(len(E['longitude'])))
+    if verbose: print('Total Events: {:,}'.format(len(E['longitude'])))
 
     ##=============================================================================
     ## 2) Get HRRR Lightning data and lat/lon grid.
-    print('(2/7) Get HRRR Data.')
+    if verbose: print('(2/7) Get HRRR Data.')
     HH = get_hrrr_all_valid(validDATE, 'LTNG:entire', fxx=fxx)
 
     ##=============================================================================
     ## 3) Filter Events to HRRR domain and 4) Map GLM points HRRR grid
-    print('(3/7) Filter GLM.')
-    print('(4/7) Put GLM on HRRR grid.')
+    if verbose: print('(3/7) Filter GLM.')
+    if verbose: print('(4/7) Put GLM on HRRR grid.')
     hist, filtered = bin_GLM_on_HRRR_grid(E, Hlat, Hlon, m)
-    print('In-HRRR Events: {:,}'.format(np.sum(filtered)))
+    if verbose: print('In-HRRR Events: {:,}'.format(np.sum(filtered)))
 
     # Before we bloat the Events grid, lets get a count of the total events
     # inside each domain.
@@ -120,7 +120,7 @@ def get_GLM_HRRR_contingency_stats(validDATE, fxx=range(1,19)):
     # than the 3 km HRRR grid we just mapped the GLM data onto. If you plotted the
     # results of histogram, you would see the data is polkadoted like a speckled
     # sussex chicken. We now apply a spatial filter that will fill in the gaps.
-    print('(5/7) Bloat GLM data with spatial filter.')
+    if verbose: print('(5/7) Bloat GLM data with spatial filter.')
     custom_filter = np.array([[0,1,1,1,0],
                               [1,1,1,1,1],
                               [1,1,1,1,1],
@@ -138,7 +138,7 @@ def get_GLM_HRRR_contingency_stats(validDATE, fxx=range(1,19)):
     #     used because it got rid of the "popcorn" thunderstorms.
     #  2) GLM yes/no event: Must have more than one event in the grid box.
 
-    print('(6/7) Generate binary grids.')
+    if verbose: print('(6/7) Generate binary grids.')
     Observed_binary = bloat_glm > 1     # More than 1 GLM event in a grid box.
     Forecast_binary = HH.data >= 0.04   # Greater than 0.04 flashes/km2/5min.
 
@@ -150,10 +150,10 @@ def get_GLM_HRRR_contingency_stats(validDATE, fxx=range(1,19)):
     return_this['Number Expected Files'] = files['Number Expected']
     return_this['DATETIME'] = validDATE
 
-    print('(7/7) Compute contingency table for each subdomain.')
+    if verbose: print('(7/7) Compute contingency table for each subdomain.')
     # For each subdomains...
     for DOMAIN in domains.keys():
-        print('    Stats for %s' % DOMAIN)
+        if verbose: print('    Stats for %s' % DOMAIN)
         # masked binaries
         if DOMAIN != 'HRRR':
             O_m = np.ma.array(Observed_binary, mask=domains[DOMAIN]['mask'])
@@ -167,12 +167,12 @@ def get_GLM_HRRR_contingency_stats(validDATE, fxx=range(1,19)):
         A, B, C, D = [tables[:,n] for n in range(0,4)]
         #
         return_this['table'][DOMAIN] = (A, B, C, D)
-    print('(FIN)')
+    if verbose: print('(FIN)')
 
     if fxx==range(1,19):
         # Save the dictionary for later use
         np.save(BINARY_FILE, return_this)
-        print('\n***Saved Binary Dictionary:', BINARY_FILE, '***\n')
+        if verbose: print('\n***Saved Binary Dictionary:', BINARY_FILE, '***\n')
 
     return return_this
 

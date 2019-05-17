@@ -31,6 +31,7 @@ from pyproj import Proj
 import subprocess
 import xarray
 import matplotlib.pyplot as pyplot
+import metpy
 
 import sys
 sys.path.append('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3')
@@ -315,6 +316,9 @@ def get_GOES_TrueColor(FILE, return_dates=True, return_latlon=True,
     # Create a color tuple for pcolormesh
     return_this['TrueColor'] = RGB
     return_this['TrueColor Tuple'] = make_colorTuple(RGB, verbose=verbose)
+    dat = C.metpy.parse_cf('CMI_C02')
+    return_this['dat'] = dat
+    return_this['crs'] = dat.metpy.cartopy_crs
 
     return return_this
 

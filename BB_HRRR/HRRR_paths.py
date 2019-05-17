@@ -54,13 +54,13 @@ def get_domains(add_states=None, HRRR_specific=True, compute_area=True):
                            'lat': np.concatenate([Hlat[0], Hlat[:,-1], Hlat[-1][::-1], Hlat[:,0][::-1]])}
         domains['West'] = {
                     'lon':[-120, -104, -104, -120, -120],
-                    'lat':[24.4, 24.4, 50.2, 50.2, 24.2]}
+                    'lat':[24.4, 24.4, 50.2, 50.2, 24.4]}
         domains['Central'] = {
                     'lon':[-104, -88, -88, -104, -104],
-                    'lat':[24.4, 24.4, 50.2, 50.2, 24.2]}
+                    'lat':[24.4, 24.4, 50.2, 50.2, 24.4]}
         domains['East'] = {
                     'lon':[-88, -72, -72, -88, -88],
-                    'lat':[24.4, 24.4, 50.2, 50.2, 24.2]}
+                    'lat':[24.4, 24.4, 50.2, 50.2, 24.4]}
     
     # Add paths for each state requested
     if add_states != None:

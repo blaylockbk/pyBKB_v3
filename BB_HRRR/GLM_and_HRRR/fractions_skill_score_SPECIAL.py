@@ -324,8 +324,8 @@ if __name__ == '__main__':
         months = [10]
         hours = range(24)
     elif host == 'meso3':
-        months = [8]
-        hours = range(21, 22)
+        months = range(10,4,-1)
+        hours = range(24)
     elif host == 'meso4':
         months = [8]
         hours = range(13,24)
@@ -333,7 +333,6 @@ if __name__ == '__main__':
 
     radii = [5, 10, 20, 40, 60, 80]
     radii = [60, 80]
-
 
     for r in radii:
         inputs = [(year, month, hour, [r]) for month in months for hour in hours]

@@ -113,8 +113,11 @@ def draw_ALASKA_map(resolution='i', area_thresh=3000):
 def draw_GOES_East_geo(resolution='i', area_thresh=3000):
     """
     Draw GOES-16 East geostationary projection
+    # See this: https://github.com/blaylockbk/pyBKB_v3/issues/1
     """
-    return Basemap(projection='geos', lon_0='-75.0',
+    print('WARNING: you will get better lines if you plot with Cartopy.'
+          'See this: https://github.com/blaylockbk/pyBKB_v3/issues/1')
+    return Basemap(projection='geos', lon_0=-75.0,
                    resolution=resolution, area_thresh=area_thresh,
                    llcrnrx=-3626269.5, llcrnry=1584175.9,
                    urcrnrx=1381770.0, urcrnry=4588198.0)

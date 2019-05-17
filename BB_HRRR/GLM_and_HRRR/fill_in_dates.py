@@ -123,9 +123,6 @@ def refill_dates(DOM, month, hour, radius):
 
 if __name__=='__main__':
     DOM = ['HRRR', 'West', 'Central', 'East', 'Utah', 'Colorado', 'Texas', 'Florida']
-    month = 8
-    hour = 10
-    radius = 10
 
     #for radius in [5, 10, 20, 40, 60]:
     for radius in [80]:
