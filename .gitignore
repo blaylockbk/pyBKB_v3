@@ -6,15 +6,15 @@ get_credentials.py
 *.grib2*
 *.npy
 *.h5
+*.zip
 *.pyc
 *.nfs*
 *.csv
 !states_latlon.csv
 
-*.zip
-
 .rclone.conf
 
-figs/
-WOOLSEY_100km/
+BB_HRRR/figs/
+BB_GOES/figs/
 
+WOOLSEY_100km/
