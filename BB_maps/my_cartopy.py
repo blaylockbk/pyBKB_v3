@@ -13,14 +13,31 @@ Notes: There are issues with plotting boundaries
 proj_HRRR
 proj_GOES16
 
+extent_centermap()
+add_NEXRAD()
+
+arcgisimage()
+
 load_states
 load_counties
 """
 
+import numpy as np
+
 import platform
-import cartopy.crs as ccrs # Cartopy Coordinate Reference System
+
+import cartopy.crs as ccrs                # Cartopy Coordinate Reference System
 import cartopy.feature as cfeature
 from cartopy.io.shapereader import Reader
+import cartopy.io.img_tiles as cimgt      # For reading tiles form web services
+
+
+## Abbreviated State Names
+all_states = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', \
+              'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', \
+              'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', \
+              'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', \
+              'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY']
 
 # Plate Carree coordinate system for Latitude/Longitude values. I use this so
 # so just import it, i.e. `from BB_maps.my_cartopy import pc`
@@ -53,6 +70,82 @@ def proj_GOES16():
                                       'satellite_height' : 35786023.0,
                                       'sweep_axis' : 'x'}
     return ccrs.Geostationary(**geostationaryProjParams_GOES16)
+
+## === Set extent =============================================================
+## ============================================================================
+def extent_centermap(ax, center, size=(3,3)):
+    """
+    Set extent as a square map over a center location
+    input:
+        center - A tuple for latitude and longitude, i.e. (42, -110.5)
+                 or A MesoWest Station ID, i.e. 'KSLC'
+                 or A state name, i.e. 'Utah'
+        size   - A tuple for the distance between the center location and how
+                 far left/right/up/down you want the map to display
+    """
+
+    if type(center) == tuple:
+        lat, lon = center
+    else:
+        # Read in list of states
+        states = np.genfromtxt('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/BB_maps/data/states_latlon.csv', names=True, delimiter=',', dtype=None, encoding='UTF-8')
+        if center.upper() in np.char.upper(states['State']):
+            state_idx = np.argwhere(states['State'] == center)[0][0]
+            STATE, lat, lon = states[state_idx]
+        else:
+            # Maybe it is a MesoWest station ID
+            from BB_MesoWest.get_MesoWest import get_mesowest_stninfo
+            a = get_mesowest_stninfo(center)
+            if a != 'ERROR':
+                lat, lon = a[center]['latitude'], a[center]['longitude']
+            else:
+                print('I am sorry. I do not under stand your request')
+                print('Input must be a (lat,lon) tuple, a state like "Utah", or a MesoWest ID')
+
+    ax.set_extent([lon-size[1], lon+size[1], lat-size[0], lat+size[0]])
+
+
+## === Add CONUS NEXRAD .png from Iowa State ==================================
+## ============================================================================
+
+def add_NEXRAD(ax, DATE='mostRecent', version='n0q'):
+    """
+    Add NEXRAD mosaic composite reflectivity .png image to a cartopy axis. 
+    Data is from Iowa Environmental Mesonet:
+        
+        https://mesonet.agron.iastate.edu/docs/nexrad_composites/
+
+    Input:
+        ax      - the figure axis
+        DATE    - the datetime (UTC) you wish to retrieve. Default is the most
+                  recent image.
+        version - 'n0r' Base reflectivity at 5 dbz resolution (depreciated??)
+                  'n0q' Base reflectivity at 0.5 dbz resolution 
+    """
+    assert version in ['n0q', 'n0r'], "version argument must be 'n0q' or 'n0r'."
+
+    if DATE == 'mostRecent':
+        ax.add_wms(wms='https://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/%s-t.cgi?' % version,
+                   layers='nexrad-%s-wmst' % version)
+    else:
+        strDATE = DATE.strftime('%Y-%m-%dT%H:%M:%SZ')
+        ax.add_wms(wms='https://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/%s-t.cgi?' % version,
+                   layers='nexrad-%s-wmst' % version,
+                   wms_kwargs={'time':strDATE})
+
+## === arcgisimage ============================================================
+## ============================================================================
+def arcgisimage(ax, service="World_Shaded_Relief", zoom=1):
+    """
+    Duplicate the functionality of Basemap `arcgisimage()` function.
+    
+    My favorite background is the "World_Shaded_Relief"
+    """
+    url = 'https://server.arcgisonline.com/ArcGIS/rest/services/' \
+          '%s/MapServer/tile/{z}/{y}/{x}.jpg' % service
+    
+    image = cimgt.GoogleTiles(url=url)
+    ax.add_image(image, zoom)
 
 
 ##=============================================================================
