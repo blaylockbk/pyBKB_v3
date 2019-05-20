@@ -1,4 +1,4 @@
-# This is my site page that I made
+# This document is formated with markdown
 
 This is some text
 
@@ -20,3 +20,9 @@ This is some text
 `this is code`
 
     this is a code block
+
+**This is bold text**
+
+_This is italics_
+
+
