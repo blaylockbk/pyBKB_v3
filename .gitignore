@@ -10,6 +10,7 @@ get_credentials.py
 *.pyc
 *.nfs*
 *.csv
+
 !states_latlon.csv
 
 .rclone.conf
