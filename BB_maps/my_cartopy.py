@@ -108,7 +108,7 @@ def extent_centermap(ax, center, size=(3,3)):
 ## === Add CONUS NEXRAD .png from Iowa State ==================================
 ## ============================================================================
 
-def add_NEXRAD(ax, DATE='mostRecent', version='n0q'):
+def add_NEXRAD(ax, DATE='mostRecent', version='n0q', zorder=10):
     """
     Add NEXRAD mosaic composite reflectivity .png image to a cartopy axis. 
     Data is from Iowa Environmental Mesonet:
@@ -131,7 +131,8 @@ def add_NEXRAD(ax, DATE='mostRecent', version='n0q'):
         strDATE = DATE.strftime('%Y-%m-%dT%H:%M:%SZ')
         ax.add_wms(wms='https://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/%s-t.cgi?' % version,
                    layers='nexrad-%s-wmst' % version,
-                   wms_kwargs={'time':strDATE})
+                   wms_kwargs={'time':strDATE, 'transparent':True},
+                   zorder=zorder)
 
 ## === arcgisimage ============================================================
 ## ============================================================================

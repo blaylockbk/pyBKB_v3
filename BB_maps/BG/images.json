@@ -1,0 +1,23 @@
+{"__comment__": "JSON file specifying the image to use for a given type/name and resolution. Read in by cartopy.mpl.geoaxes.read_user_background_images.",
+    
+    "BM": {
+    "__comment__": "Blue Marble Next Generation, August",
+    "__source__": "https://neo.sci.gsfc.nasa.gov/view.php?datasetId=BlueMarbleNG-TB&date=2004-12-01",
+    "__projection__": "PlateCarree",
+    "low": "BM.jpg",
+    "high": "BM_hirez.jpg"},
+
+    "Terrain": {
+        "__comment__": "NASA Terrain, 2000",
+        "__source__": "https://neo.sci.gsfc.nasa.gov/view.php?datasetId=SRTM_RAMP2_TOPO",
+        "__projection__": "PlateCarree",
+        "low": "Terrain.jpg",
+        "high": "Terrain_hirez.jpg"},
+
+    "Terrain Greyscale": {
+        "__comment__": "NASA Terrain, 2000: Greyscale",
+        "__source__": "https://neo.sci.gsfc.nasa.gov/view.php?datasetId=SRTM_RAMP2_TOPO",
+        "__projection__": "PlateCarree",
+        "low": "Terrain_g.jpg",
+        "high": "Terrain_g_hirez.jpg"}
+}
