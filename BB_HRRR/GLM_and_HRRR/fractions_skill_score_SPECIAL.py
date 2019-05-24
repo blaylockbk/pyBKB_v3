@@ -210,11 +210,20 @@ def write_to_files_MP(inputs):
     else:
         eDATE = datetime(year, month+1, 1, hour)
 
+    # Maximum date available is "yesterday", and eDATE cannot exceed this date.
+    # This should only be the case if you are running statistics for the
+    # current month. (example: today is May 24th, so I can't run statistics
+    # for May 24-31. Thus, eDATE should be May 23rd.)
+    maximumDATE = datetime(year, eDATE.month-1, (datetime.utcnow()-timedelta(days=1)).day, hour)
+    eDATE = np.minimum(eDATE, maximumDATE)
+
     #
     print('\n')
     print('=========================================================')
     print('=========================================================')
     print('       WORKING ON MONTH %s and HOUR %s Radii %s' % (month, hour, radii))
+    print('           sDATE: %s' % sDATE.strftime('%H:%M UTC %d %b %Y'))
+    print('           eDATE: %s' % eDATE.strftime('%H:%M UTC %d %b %Y'))
     print('=========================================================')
     print('=========================================================')
     #
@@ -302,37 +311,43 @@ if __name__ == '__main__':
 
 
     ## Each file will be all days for the hour of that month
-    year = 2018
-    hours = range(24)
+    
 
     import socket
     host = socket.gethostname().split('.')[0]
 
     if host == 'meteo19':
+        year = 2019
         months = [7]
         hours = range(24)
     elif host == 'wx1':
+        year = 2019
         months = [5]
         hours = range(24)
     elif host == 'wx2':
+        year = 2019
         months = [6]
         hours = range(24)
     elif host == 'wx3':
+        year = 2019
         months = [9]
         hours = range(24)
     elif host == 'wx4':
+        year = 2019
         months = [10]
         hours = range(24)
     elif host == 'meso3':
-        months = range(10,4,-1)
+        year = 2019
+        months = range(5,6)
         hours = range(24)
     elif host == 'meso4':
+        year = 2019
         months = [8]
         hours = range(13,24)
 
 
     radii = [5, 10, 20, 40, 60, 80]
-    radii = [60, 80]
+    #radii = [60, 80]
 
     for r in radii:
         inputs = [(year, month, hour, [r]) for month in months for hour in hours]

@@ -79,8 +79,8 @@ def refill_dates(DOM, month, hour, radius):
                         location.append(loc[0][0])
                 else:
                     location.append(np.nan)
-        print(needed)
-        print(location)
+        #print(needed)
+        #print(location)
         #
         if any(needed):
             #
@@ -125,9 +125,10 @@ if __name__=='__main__':
     DOM = ['HRRR', 'West', 'Central', 'East', 'Utah', 'Colorado', 'Texas', 'Florida']
 
     #for radius in [5, 10, 20, 40, 60]:
-    for radius in [80]:
-        for month in range(8,9):
-            for hour in range(0,19):
+    for radius in [60,80]:
+        for month in range(5,11):
+            for hour in range(0,24):
+                print(DOM, month, hour, radius)
                 refill_dates(DOM, month, hour, radius)
 
 
