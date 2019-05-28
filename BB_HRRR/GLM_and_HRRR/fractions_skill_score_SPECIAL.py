@@ -318,32 +318,32 @@ if __name__ == '__main__':
 
     if host == 'meteo19':
         year = 2019
-        months = [7]
-        hours = range(24)
+        months = [5]
+        hours = [3]
     elif host == 'wx1':
         year = 2019
         months = [5]
-        hours = range(24)
+        hours = [0]
     elif host == 'wx2':
         year = 2019
-        months = [6]
-        hours = range(24)
+        months = [5]
+        hours = [8]
     elif host == 'wx3':
         year = 2019
-        months = [9]
-        hours = range(24)
+        months = [5]
+        hours = [16]
     elif host == 'wx4':
         year = 2019
-        months = [10]
-        hours = range(24)
+        months = [5]
+        hours = [17]
     elif host == 'meso3':
         year = 2019
-        months = range(5,6)
-        hours = range(24)
+        months = [5]
+        hours = range(4)
     elif host == 'meso4':
         year = 2019
-        months = [8]
-        hours = range(13,24)
+        months = [5]
+        hours = range(4,24)
 
 
     radii = [5, 10, 20, 40, 60, 80]

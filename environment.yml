@@ -22,5 +22,6 @@ dependencies:
   - pyproj
   - h5py
   - shapely
-  - pygrib # Not available on Windows
+  - pygrib  # Not available on Windows
   - boto
+  #- cfgrib  # Can read GRIB2 on Windows (need version 0.9.7+ for reading HRRR files)

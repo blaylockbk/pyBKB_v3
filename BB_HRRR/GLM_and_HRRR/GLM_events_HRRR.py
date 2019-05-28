@@ -275,6 +275,13 @@ def write_to_files_MP(inputs):
         eDATE = datetime(year+1, 1, 1, hour)
     else:
         eDATE = datetime(year, month+1, 1, hour)
+
+    # Maximum date available is "yesterday", and eDATE cannot exceed this date.
+    # This should only be the case if you are running statistics for the
+    # current month. (example: today is May 24th, so I can't run statistics
+    # for May 24-31. Thus, eDATE should be May 23rd.)
+    maximumDATE = datetime(year, eDATE.month-1, (datetime.utcnow()-timedelta(days=1)).day, hour)
+    eDATE = np.minimum(eDATE, maximumDATE)
         
     #days = int((eDATE-sDATE).days)
     #DATES = [sDATE+timedelta(days=d) for d in range(days)]
@@ -345,7 +352,7 @@ if __name__ == '__main__':
 
 
     ## Each file will be all days for the hour of that month
-    year = 2018
+    year = 2019
     #months = range(5,12)
     #hours = range(24)
 
@@ -362,7 +369,7 @@ if __name__ == '__main__':
         months = [11]
         hours = range(24)
     elif host == 'meso3':
-        months = [10]
+        months = [5]
         hours = range(24)
     elif host == 'meso4':
         months = [5]
