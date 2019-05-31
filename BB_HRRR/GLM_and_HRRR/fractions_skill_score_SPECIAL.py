@@ -339,7 +339,7 @@ if __name__ == '__main__':
     elif host == 'meso3':
         year = 2019
         months = [5]
-        hours = range(4)
+        hours = range(24)
     elif host == 'meso4':
         year = 2019
         months = [5]

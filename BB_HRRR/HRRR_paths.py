@@ -106,6 +106,21 @@ def get_domains(add_states=None, HRRR_specific=True, compute_area=True):
     return domains
 
 
+def get_RAP_path():
+    # RAPv4 geogrid downloaded from
+    # https://rapidrefresh.noaa.gov/RAP/static/RAPv4-ESRL/geo_em.d01.nc
+    import xarray
+    x = xarray.open_dataset('/uufs/chpc.utah.edu/common/home/horel-group8/blaylock/RAPv4_geo_em.d01.nc')
+    RAP_lons = np.concatenate([x.XLONG_M[0][0], x.XLONG_M[0][:,-1], x.XLONG_M[0][-1][::-1], x.XLONG_M[0][:,0][::-1]])
+    RAP_lats = np.concatenate([x.XLAT_M[0][0], x.XLAT_M[0][:,-1], x.XLAT_M[0][-1][::-1], x.XLAT_M[0][:,0][::-1]])
+
+    # There is an issue with crossing over the 180th meridian.
+    # This is a quick fix without too much investigation on how to do it right...
+    return {'part1':{'lon': RAP_lons[:-458],
+                     'lat': RAP_lats[:-458]},
+            'part2':{'lon': RAP_lons[-457:],
+                     'lat': RAP_lats[-457:]},}
+
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
