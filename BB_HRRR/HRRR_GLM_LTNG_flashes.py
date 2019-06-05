@@ -365,53 +365,14 @@ def write_to_file(inputs):
 
 if __name__ == '__main__':
     
-    #DATE = datetime(2018, 5, 14, 22) # Mallard Fire
-    #DATE = datetime(2018, 6, 13, 0) # Missing data
-    
-    #a, (files, expected) = get_HRRR_LTNG_hit_rate(DATE)
-    
-   
-    #timerStart = datetime.now()
-    
-    # =========================================================================
-    '''
-    ## Single Date and Figure
-    #DATE = datetime(2018, 5, 14, 22) # Mallard Fire
-    #DATE = datetime(2018, 7, 5, 23) # Lake Christine
-    DATE = datetime(2018, 7, 17, 6) # July Storm
-    #DATE = datetime(2018, 7, 27, 0) # Missing GLM data
-
-    a, (files, expected) = get_HRRR_LTNG_hit_rate(DATE)
-
-    FXX = 1
-    Hltng = get_hrrr_variable(DATE-timedelta(hours=FXX), 'LTNG:entire', fxx=FXX)
-
-    plt.figure(figsize=[15,10])
-    for i in ['HRRR', 'West', 'Central', 'East', 'Utah']:
-        m.scatter(a[i]['longitude'], a[i]['latitude'],
-                latlon=True, label='%s: %.1f%%' % (i, a[i]['in_LTNG_F%02d' % FXX]['hit rate']*100))
-
-    m.scatter(a['HRRR']['longitude'][a['HRRR']['in_LTNG_F%02d' % FXX]['boolean']],
-            a['HRRR']['latitude'][a['HRRR']['in_LTNG_F%02d' % FXX]['boolean']],
-                latlon=True, s=1, color='k', label='inside HRRR LTNG')
-
-    m.contour(Hlon, Hlat, Hltng['value'].data, levels=[0], colors='maroon', latlon=True, linewidths=.75)
-
-    plt.legend()
-    m.drawstates(); m.drawcoastlines(); m.drawcountries()
-    m.drawmeridians(np.array([-104-16, -104, -104+16, -104+16+16]), labels=[1,1,0,1], fontsize=10, linewidth=2)
-    m.drawparallels(np.array([24.4, 50.2]), labels=[1,1,1,1], fontsize=10, linewidth=2)
-    plt.title('%s -- F%02d' % (DATE, FXX))
-    #plt.savefig('HRRR_GLM_hit-rate_demo_%s' % DATE.strftime('%Y%m%d-%H%M))
-    '''
-
     # =========================================================================
  
-    if False:
+    if True:
         #months = [5, 6, 7, 8, 9, 10]
 
         year = 2019
-        months = [5]
+        #months = [5]
+        months = [datetime.utcnow().month]
         hours = range(24)
 
         
@@ -439,104 +400,3 @@ if __name__ == '__main__':
 
         inputs = [(year, month, hour) for month in months for hour in hours]
         list(map(write_to_file, inputs))
-
-        
-        '''
-        for h in hours:
-            for m in months:
-                print('\n')
-                print('=========================================================')
-                print('=========================================================')
-                print('           WORKING ON MONTH %s and HOUR %s' % (m, h))
-                print('=========================================================')
-                print('=========================================================')
-
-                # Loop over many dates and write output to a file (
-                # new file each month.
-                sDATE = datetime(year, m, 1, h)
-                if m==12:
-                    eDATE = datetime(year+1, 1, 1, h)
-                else:
-                    eDATE = datetime(year, m+1, 1, h)
-                
-                # Maximum date available is "yesterday", and eDATE cannot exceed this date.
-                # This should only be the case if you are running statistics for the
-                # current month. (example: today is May 24th, so I can't run statistics
-                # for May 24-31. Thus, eDATE should be May 23rd.)
-                if eDATE > datetime.now():
-                    maximumDATE = datetime(year, eDATE.month-1, (datetime.utcnow()-timedelta(days=1)).day, h)
-                    eDATE = np.minimum(eDATE, maximumDATE)
-                    
-                days = int((eDATE-sDATE).days)
-                DATES = [sDATE+timedelta(days=d) for d in range(days)]
-                
-                #
-                for DATE in DATES:
-                    if DATE == sDATE:
-                        # Create Header and  initial new file for each domain
-                        #fxx_hit_head = ','.join(['F%02d_Hit_Rate' % i for i in range(19)])
-                        #fxx_false_head = ','.join(['F%02d_False_Alarm' % i for i in range(19)])
-                        #fxx_area_head = ','.join(['F%02d_Total_Area_km2' % i for i in range(19)])
-                        HEADER = 'DATE,GLM FLASH COUNT,NUM FILES,EXPECTED FILES'
-                        for d in PATH_points.keys():
-                            SAVEFILE = SAVEDIR+"GLM_in_HRRR_%s_%s.csv" % (d, sDATE.strftime('%Y_m%m_h%H')) 
-                            with open(SAVEFILE, "w") as f:
-                                f.write('%s\n' % HEADER)
-
-                    # Get Hit Rate Data for each domain Path
-                    a, (files, expected) = get_HRRR_LTNG_hit_rate(DATE)
-                    
-
-                    for d in PATHS.keys():
-                        # Write the following
-                        # 1 date,
-                        # 2 total flashes,
-                        # 3 num files,
-                        # 4 expected files,
-                        # 5 hit rate f00, ..., f18
-                        # 6 false alarm rate f00, ..., f18
-                        # 7 total area f00, ..., f18
-                        if a is None:
-                            fxx_hits_str = ','.join(np.array(np.ones_like(range(19))*np.nan, dtype=str))
-                            fxx_false_str = ','.join(np.array(np.ones_like(range(19))*np.nan, dtype=str))
-                            fxx_area_str = ','.join(np.array(np.ones_like(range(19))*np.nan, dtype=str))
-                            line = "%s,%s,%s,%s" % (DATE, 
-                                                             np.nan,        # because there are no flashes
-                                                             files,         # should be zero
-                                                             expected      # 180
-                                                             #fxx_hits_str,  # nan, because no GLM data
-                                                             #fxx_false_str, # nan, because no GLM data
-                                                             #fxx_area_str  # nan, to indicate there we no GLM data
-                                                             )
-                        else:
-                            #fxx_hits = np.round(a[d]['HRRR LTNG']['Hit Rate'], 4)
-                            #fxx_false = np.round(a[d]['HRRR LTNG']['False Alarm'], 4)
-                            #fxx_area = np.round(a[d]['HRRR LTNG']['Total Area km2'], 6)
-                            #fxx_hits_str = ','.join(np.array(fxx_hits, dtype=str))
-                            #fxx_false_str = ','.join(np.array(fxx_false, dtype=str))
-                            #fxx_area_str = ','.join(np.array(fxx_area, dtype=str))
-
-                            line = "%s,%s,%s,%s" % (DATE, 
-                                                            len(a[d]['latitude']),
-                                                            files,
-                                                            expected
-                                                            #fxx_hits_str,
-                                                            #fxx_false_str,
-                                                            #fxx_area_str
-                                                            )
-                        SAVEFILE = SAVEDIR+"GLM_in_HRRR_%s_%s.csv" % (d, sDATE.strftime('%Y_m%m_h%H')) 
-                        
-                        print(line)
-
-                        with open(SAVEFILE, "a") as f:
-                            f.write('%s\n' % line)
-                        print('Wrote to', SAVEFILE)
-
-'''
-    """
-    In output:
-        - If "GLM FLASH COUNT" is nan, then there were either no GLM files obtained
-        for that hour, or there were files, but no observed GLM flashes.
-        - If "FXX" is nan, then there were no observed GLM flashes in that domain
-    """
-

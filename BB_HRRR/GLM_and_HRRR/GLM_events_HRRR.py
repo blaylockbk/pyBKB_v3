@@ -376,6 +376,8 @@ if __name__ == '__main__':
         months = [5]
         hours = range(24)
     
+    months = [datetime.utcnow().month]
+
     print('\n     =======================================')
     print('        HOST: %s, MONTHS: %s HOURS: %s' % (host, months, hours))
     print('     =======================================\n')

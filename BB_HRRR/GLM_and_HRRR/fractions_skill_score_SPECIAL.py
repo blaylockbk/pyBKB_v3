@@ -339,16 +339,16 @@ if __name__ == '__main__':
         hours = [17]
     elif host == 'meso3':
         year = 2019
-        months = [5]
+        months = [6]
         hours = range(24)
     elif host == 'meso4':
         year = 2019
         months = [5]
         hours = range(0,24)
 
+    months = [datetime.utcnow().month]
 
     radii = [5, 10, 20, 40, 60, 80]
-    #radii = [60, 80]
 
     for r in radii:
         inputs = [(year, month, hour, [r]) for month in months for hour in hours]
