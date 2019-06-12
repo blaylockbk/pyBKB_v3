@@ -102,10 +102,12 @@ def frequency_bias(a, b, c, d):
     Total events forecasted divided by the total events observed. Bias Score.
     "How did the forecast frequency of "yes" events compare to the observed
     frequency of "yes" events?"
-        Perfect Score = 1
-        Underforecast when B<1, Overforcast when B>
+        Perfect Score: B = 1
+        Underforecast: B < 1
+        Overforcast  : B > 1
     Does not measure how well the forecast corresponds to the observations,
     only measures relative frequencies.
+    If condition is never observed (0), then B is infinity.
     """
     B = (a+b)/(a+c)
     return B
