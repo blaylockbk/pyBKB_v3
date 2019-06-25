@@ -72,7 +72,7 @@ def get_GLM_file_nearesttime(DATE, satellite=16, window=0, verbose=True):
     ls3 = HG7+'%s/' % (DATE+timedelta(hours=1)).strftime('%Y%m%d/%H')
 
     if verbose:
-        print("Looking in these file paths for the nearest datetime")
+        print("Looking for GOES-%s in these file paths for the nearest datetime" % satellite)
         print('  ', ls1)
         print('  ', ls2)
         print('  ', ls3)
@@ -81,8 +81,8 @@ def get_GLM_file_nearesttime(DATE, satellite=16, window=0, verbose=True):
     # List the files in those directory, if the directory exists.
     if os.path.exists(ls1):
         files1 = list(map(lambda x: HG7+(datetime.strptime(x.split('_')[3], 's%Y%j%H%M%S%f')).strftime('%Y%m%d/%H/')+x, os.listdir(ls1)))
-        # Remove GOES-17 files if there are any
-        files1 = list(filter(lambda x: '_G16_' in x, files1))
+        # Remove GOES files from other satellite if there are any
+        files1 = list(filter(lambda x: '_G%s_' % satellite in x, files1))
     else:
         files1 = []
         print('**************************************************************')
@@ -90,8 +90,8 @@ def get_GLM_file_nearesttime(DATE, satellite=16, window=0, verbose=True):
         print('**************************************************************')
     if os.path.exists(ls2):
         files2 = list(map(lambda x: HG7+(datetime.strptime(x.split('_')[3], 's%Y%j%H%M%S%f')).strftime('%Y%m%d/%H/')+x, os.listdir(ls2)))
-        # Remove GOES-17 files if there are any
-        files2 = list(filter(lambda x: '_G16_' in x, files2))
+        # Remove GOES files from other satellite if there are any
+        files2 = list(filter(lambda x: '_G%s_' % satellite in x, files2))
     else:
         files2 = []
         print('**************************************************************')
@@ -99,8 +99,8 @@ def get_GLM_file_nearesttime(DATE, satellite=16, window=0, verbose=True):
         print('**************************************************************')
     if os.path.exists(ls3):
         files3 = list(map(lambda x: HG7+(datetime.strptime(x.split('_')[3], 's%Y%j%H%M%S%f')).strftime('%Y%m%d/%H/')+x, os.listdir(ls3)))
-        # Remove GOES-17 files if there are any
-        files3 = list(filter(lambda x: '_G16_' in x, files3))
+        # Remove GOES files from other satellite if there are any
+        files3 = list(filter(lambda x: '_G%s_' % satellite in x, files3))
     else:
         files3 = []
         print('**************************************************************')

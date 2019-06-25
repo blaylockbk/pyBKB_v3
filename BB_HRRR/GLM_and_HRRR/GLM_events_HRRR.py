@@ -53,12 +53,14 @@ domains = get_domains(add_states=['UT', 'CO', 'TX', 'FL'], HRRR_specific=True)
 print(domains.keys())
 
 
-def get_GLM_HRRR_contingency_stats(validDATE, fxx=range(1,19), verbose=True):
+def get_GLM_HRRR_contingency_stats(validDATE, fxx=range(1,19),
+                                   GOES=16, verbose=True):
     '''
     Inputs:
         validDATE - A datetime that represents the end of the hour.
         fxx       - List of forecasts. Deafult starts at 0 because 
                     the F00 LTNG forecast doesn't have any output.
+        GOES      - Number of GOES satellite (16 or 17)
     
     Return:
         (A, B, C, D) - A list of values for contingency table of binary events.
@@ -71,7 +73,10 @@ def get_GLM_HRRR_contingency_stats(validDATE, fxx=range(1,19), verbose=True):
     if verbose: print(">>> get_GLM_HRRR_contingency_stats: %s" % validDATE)
     
     # Get contingency stats, which contains the binary field:
-    BASE = '/uufs/chpc.utah.edu/common/home/horel-group8/blaylock/GLM-HRRR_LTNG_binary/'
+    if GOES==16:
+        BASE = '/uufs/chpc.utah.edu/common/home/horel-group8/blaylock/GLM-HRRR_LTNG_binary/'
+    elif GOES==17:
+        BASE = '/uufs/chpc.utah.edu/common/home/horel-group8/blaylock/GLM-HRRR_LTNG_binary/HRRR-GLM-GOES17/'
     BINARY_FILE = BASE+'/HRRR-GLM-Binary_%s.npy' % validDATE.strftime('%Y-%m-%d_%H%M')
 
     if os.path.exists(BINARY_FILE) and fxx==range(1,19):
@@ -83,8 +88,9 @@ def get_GLM_HRRR_contingency_stats(validDATE, fxx=range(1,19), verbose=True):
     ##=============================================================================
     ## 1) Get GLM Events for the previous hour.
     if verbose: print('(1/7) Get GLM Events. %s' % validDATE)
-    files = get_GLM_file_nearesttime(validDATE-timedelta(minutes=30), window=30, verbose=False)
-    E = accumulate_GLM_FAST(files, data_type='event', verbose=False)
+    files = get_GLM_file_nearesttime(validDATE-timedelta(minutes=30), window=30,
+                                     satellite=GOES, verbose=verbose)
+    E = accumulate_GLM_FAST(files, data_type='event', verbose=verbose)
     
     if verbose: print('\nGot %s of %s expected files.' % (files['Number'], files['Number Expected']))
     if E == None:
