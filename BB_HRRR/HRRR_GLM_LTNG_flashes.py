@@ -371,8 +371,8 @@ if __name__ == '__main__':
         #months = [5, 6, 7, 8, 9, 10]
 
         year = 2019
-        #months = [5]
-        months = [datetime.utcnow().month]
+        months = [6]
+        #months = [datetime.utcnow().month]
         hours = range(24)
 
         

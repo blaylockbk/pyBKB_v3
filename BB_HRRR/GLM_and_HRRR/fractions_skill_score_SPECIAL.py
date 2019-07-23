@@ -339,11 +339,11 @@ if __name__ == '__main__':
         hours = [17]
     elif host == 'meso3':
         year = 2019
-        months = [6]
+        months = [7]
         hours = range(24)
     elif host == 'meso4':
         year = 2019
-        months = [5]
+        months = [7]
         hours = range(0,24)
 
     months = [datetime.utcnow().month]

@@ -2,7 +2,14 @@ from datetime import datetime
 
 def get_fire(fire):
 
-    fires = {'Lake Christine':{'name':'Lake Christine',
+    fires = {'Bahamas Bar':{'name':'Lake Christine',
+                            'sDATE':9999,
+                            'event':datetime(2019, 3, 28, 20),
+                            'event1':datetime(2018, 9, 11, 19, 30),
+                            'event2':datetime(2018, 7, 22, 19),
+                            'latitude':9999,
+                            'longitude':9999},
+             'Lake Christine':{'name':'Lake Christine',
                                'cause':'Human',
                                'sDATE':datetime(2018,7,6),
                                'event':datetime(2018, 7, 5, 21),
@@ -27,8 +34,8 @@ def get_fire(fire):
                            'cause':'Human',
                            'sDATE':datetime(2018,7,16),
                            'event':datetime(2018, 7, 17, 6),
-                           'latitude':40.77069,
-                           'longitude':-111.96503,},
+                           'latitude':40.7,
+                           'longitude':-111.96,},
              'Cougar Creek':{'name':'Cougar Creek',
                              'cause':'Lightning',
                              'sDATE':datetime(2018,9,7),
@@ -37,7 +44,7 @@ def get_fire(fire):
               'Mallard':{'name':'Mallard',
                                 'cause':'Lightning',
                                 'sDATE':datetime(2018,5,14),
-                                'event':datetime(2018, 5, 15, 23),
+                                'event':datetime(2018, 5, 16, 2),
                                 'latitude':34.81,
                                 'longitude':-101.306,},
              }

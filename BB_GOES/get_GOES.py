@@ -137,7 +137,10 @@ def get_GOES_nearesttime(DATE, product='ABI', satellite=16, window=0, verbose=Tr
         # GLM outputs files are every 20 seconds, thus, we expect 3 files per
         # minute. If window is +/-5 minutes, then we expect to retrieve data
         # from 30 files, i.e. 5*2 minutes * 3 files per minute == 30 files.
-        expected = window*2*3
+        if product == 'ABI':
+            expected = window*2/5
+        elif product == 'GLM':
+            expected = window*2*3
         # If window != 0, then get a range of files.
         # Filter the files based on the requested range. File start scan should be 
         # after sDATE and file end scan should be before eDATE.
@@ -161,11 +164,11 @@ def get_GOES_nearesttime(DATE, product='ABI', satellite=16, window=0, verbose=Tr
                 print(' Window == +/- %s Minutes' % (window))
                 print('    first observation: %s' % (sWINDOW))
                 print('     last observation: %s' % (eWINDOW))
-                print('  Returning data from %s GLM files (expected %s)' % (len_files, expected))
+                print('  Returning data from %s %s files (expected %s)' % (len_files, product, expected))
                 print('---------------------------------------------------')
                 if len_files/expected < .5:
                     print('************************************************************')
-                    print('!! WARNING !! Less than 50% of the expected GLM files available for the period')
+                    print('!! WARNING !! Less than 50% of the expected %s files available for the period' % product)
                     print('************************************************************')
         return {'Files': window_files,
                 'Number': len_files,

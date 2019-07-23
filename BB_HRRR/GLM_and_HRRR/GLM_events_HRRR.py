@@ -311,7 +311,10 @@ def write_to_files_MP(inputs):
     Next_DATE = []
     for (F, E) in zip(FILES, EXISTS):
         if E:
-            last = np.genfromtxt(F, delimiter=',', names=True, encoding='UTF-8', dtype=None)['DATE'][-1]
+            ## NOTE: If there is only one row in the file, this will hang!
+            ##       I need to make a work around, or you can just delete the
+            ##       file with one line and rerun the script 🤪
+            last = np.genfromtxt(F, delimiter=',', names=True, encoding='UTF-8', dtype=None)['DATE'][-1] 
             Next_DATE.append(datetime.strptime(last, '%Y-%m-%d %H:%M:%S')+timedelta(days=1))
         else:
             Next_DATE.append(sDATE)
@@ -376,10 +379,10 @@ if __name__ == '__main__':
         months = [11]
         hours = range(24)
     elif host == 'meso3':
-        months = [5]
+        months = [7]
         hours = range(24)
     elif host == 'meso4':
-        months = [5]
+        months = [7]
         hours = range(24)
     
     months = [datetime.utcnow().month]
