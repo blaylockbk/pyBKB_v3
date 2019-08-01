@@ -215,8 +215,14 @@ def write_to_files_MP(inputs):
     # current month. (example: today is May 24th, so I can't run statistics
     # for May 24-31. Thus, eDATE should be May 23rd.)
     if eDATE > datetime.now():
-        maximumDATE = datetime(year, eDATE.month-1, (datetime.utcnow()-timedelta(days=1)).day, hour)
+        today = datetime.utcnow()
+        #maximumDATE = datetime(year, eDATE.month-1, (datetime.utcnow()-timedelta(days=1)).day, hour)
+        maximumDATE = datetime(today.year, today.month, today.day, hour)
         eDATE = np.minimum(eDATE, maximumDATE)
+
+    if sDATE == eDATE:
+        print('Start Date and End Date are the same. Try again')
+        return None
 
     #
     print('\n')
@@ -346,7 +352,15 @@ if __name__ == '__main__':
         months = [7]
         hours = range(0,24)
 
-    months = [datetime.utcnow().month]
+    # Comment below out if you want to do a specific month defined above,
+    # otherwise, the script will run days for the current month.
+    ''''''
+    if datetime.utcnow().day < 3:
+        last_month = (datetime.utcnow()-timedelta(days=3)).month
+        months = [last_month, datetime.utcnow().month]
+    else:
+        months = [datetime.utcnow().month]
+    ''''''
 
     radii = [5, 10, 20, 40, 60, 80]
 
