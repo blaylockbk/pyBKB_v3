@@ -287,9 +287,15 @@ def write_to_files_MP(inputs):
     # current month. (example: today is May 24th, so I can't run statistics
     # for May 24-31. Thus, eDATE should be May 23rd.)
     if eDATE > datetime.now():
-        maximumDATE = datetime(year, eDATE.month-1, (datetime.utcnow()-timedelta(days=1)).day, hour)
+        today = datetime.utcnow()
+        #maximumDATE = datetime(year, eDATE.month-1, (datetime.utcnow()-timedelta(days=1)).day, hour)
+        maximumDATE = datetime(today.year, today.month, today.day, hour)
         eDATE = np.minimum(eDATE, maximumDATE)
-        
+    
+    if sDATE == eDATE:
+        print('Start Date and End Date are the same. Try again')
+        return None
+
     #days = int((eDATE-sDATE).days)
     #DATES = [sDATE+timedelta(days=d) for d in range(days)]
     #
@@ -311,13 +317,23 @@ def write_to_files_MP(inputs):
     Next_DATE = []
     for (F, E) in zip(FILES, EXISTS):
         if E:
-            ## NOTE: If there is only one row in the file, this will hang!
-            ##       I need to make a work around, or you can just delete the
-            ##       file with one line and rerun the script 🤪
-            last = np.genfromtxt(F, delimiter=',', names=True, encoding='UTF-8', dtype=None)['DATE'][-1] 
-            Next_DATE.append(datetime.strptime(last, '%Y-%m-%d %H:%M:%S')+timedelta(days=1))
+            list_DATES = np.genfromtxt(F, delimiter=',', names=True, encoding='UTF-8', dtype=None)['DATE']
+            if np.shape(list_DATES) == ():
+                # I suppose there is only one date in the list
+                last = str(list_DATES)
+            else:
+                # Else, get the last date in the list
+                last = list_DATES[-1]
+            try:
+                Next_DATE.append(datetime.strptime(last, '%Y-%m-%d %H:%M:%S')+timedelta(days=1))
+                DATE_fmt = '%Y-%m-%d %H:%M:%S'
+            except:
+                Next_DATE.append(datetime.strptime(last, '%m/%d/%Y %H:%M')+timedelta(days=1))
+                DATE_fmt = '%m/%d/%Y %H:%M'
+
         else:
             Next_DATE.append(sDATE)
+            DATE_fmt = '%Y-%m-%d %H:%M:%S'
 
     # Does the last date equal to the last day of the month of interest?
     have_all_dates = np.array(Next_DATE) == eDATE
