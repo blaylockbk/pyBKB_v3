@@ -455,6 +455,19 @@ def get_mesowest_percentiles(stn, variable='air_temp',
         return 'ERROR'
 
 
+def get_mesowest_network(network='1,2'):
+    """Get list of station locations by network"""
+    URL = 'http://api.mesowest.net/v2/stations/metadata?' \
+        + '&token=' + get_MW_token() \
+        + '&network=%s' % network
+    NWS = load_json(URL)
+
+    return {'LON': np.array([stn['LONGITUDE'] for stn in NWS['STATION']], dtype=float),        
+            'LAT': np.array([stn['LATITUDE'] for stn in NWS['STATION']], dtype=float),
+            'NAME': np.array([stn['NAME'] for stn in NWS['STATION']]),
+            'STID': np.array([stn['STID'] for stn in NWS['STATION']])}
+
+
 if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
