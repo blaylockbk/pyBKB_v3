@@ -83,7 +83,7 @@ def draw_HRRR_map(resolution='i', area_thresh=2000):
     """
     FILE = '/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/BB_maps/saved_map_objects/HRRR_lcc_%s_%s.npy' % (resolution, area_thresh)
     if os.path.exists(FILE):
-        m = np.load(FILE).item()
+        m = np.load(FILE, allow_pickle=True).item()
         print('loaded %s map from file' % FILE)
     else:
         m = Basemap(projection='lcc', resolution=resolution, area_thresh=area_thresh,

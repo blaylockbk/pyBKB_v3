@@ -10,6 +10,8 @@ get_credentials.py
 *.pyc
 *.nfs*
 *.csv
+*.zarr
+data/
 
 !states_latlon.csv
 

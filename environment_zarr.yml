@@ -1,0 +1,14 @@
+name: test_zarr
+channels:
+  - conda-forge
+dependencies:
+  - python=3
+  - zarr    # Playing around with zarr files
+  - s3fs    # Interact with S3 
+  - xarray
+  - netcdf4
+  - cfgrib
+  - pygrib
+  - matplotlib
+  - jupyter
+  - jupyterlab

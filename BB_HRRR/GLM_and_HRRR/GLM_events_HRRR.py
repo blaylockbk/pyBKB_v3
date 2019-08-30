@@ -81,7 +81,7 @@ def get_GLM_HRRR_contingency_stats(validDATE, fxx=range(1,19),
 
     if os.path.exists(BINARY_FILE) and fxx==range(1,19):
         if verbose: print('>>Load binary stats from file', BINARY_FILE)
-        stats = np.load(BINARY_FILE).item()
+        stats = np.load(BINARY_FILE, allow_pickle=True).item()
         return stats
 
     if verbose: print('>>No previous file saved. Need to generate binary stats right now...')
