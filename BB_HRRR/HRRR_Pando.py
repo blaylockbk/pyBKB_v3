@@ -175,6 +175,12 @@ def get_hrrr_variable(DATE, variable,
       today's date. If it is, then I'll send you to NOMADS. Deal? :)
                                                   -Sincerely, Brian
     """
+
+    # Rados Gateway is the URL to download a file from.
+    # You should use 'pando-rgw01', but if you get a certificate error, 
+    # then try 'pando-rgw02'.
+    #gateway = 'pando-rgw01'
+    gateway = 'pando-rgw02'
     
     # If the datetime requested is less than six hours ago, then the file is 
     # most likely on Pando. Else, download from NOMADS. 
@@ -183,8 +189,8 @@ def get_hrrr_variable(DATE, variable,
         # Get HRRR from Pando
         if verbose:
             print("Oh, good, you requested a date that should be on Pando.")
-        grib2file = 'https://pando-rgw01.chpc.utah.edu/%s/%s/%s/%s.t%02dz.wrf%sf%02d.grib2' \
-                    % (model, field,  DATE.strftime('%Y%m%d'), model, DATE.hour, field, fxx)
+        grib2file = 'https://%s.chpc.utah.edu/%s/%s/%s/%s.t%02dz.wrf%sf%02d.grib2' \
+                    % (gateway, model, field,  DATE.strftime('%Y%m%d'), model, DATE.hour, field, fxx)
         fileidx = grib2file+'.idx'
     else:
         # Get operational HRRR from NOMADS

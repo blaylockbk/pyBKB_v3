@@ -1,0 +1,19 @@
+name: glmval
+channels:
+- conda-forge
+- defaults
+dependencies:
+- hdf5
+- netcdf4
+- numpy
+- pytables
+- pandas
+- xarray
+- scikit-learn
+- scipy
+- ipython
+- matplotlib
+- pyproj
+- python=3.6
+- six
+

@@ -138,7 +138,7 @@ def get_mesowest_ts(stationID, sDATE, eDATE,
 
         # Dynamically create keys in the dictionary for each requested variable
         for v in stn['SENSOR_VARIABLES']:
-            print('v is: %s' % v)
+            if verbose: print('v is: %s' % v)
             if v == 'date_time':
                 # Convert date strings to a datetime object
                 dates = data["STATION"][0]["OBSERVATIONS"]["date_time"]
