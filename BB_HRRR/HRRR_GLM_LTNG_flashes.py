@@ -248,7 +248,7 @@ def get_HRRR_LTNG_hit_rate(DATE, fxx=range(19), contour=0):
 def write_table_to_file(a, files, expected, DATE, write_domains, SAVEDIR, DATE_fmt='%Y-%m-%d %H:%M:%S'):
     """
     """
-    for DOMAIN in a.keys():
+    for DOMAIN in ['HRRR', 'West', 'Central', 'East', 'Utah']:
         if DOMAIN in write_domains:
             #
             SAVEFILE = SAVEDIR+"GLM_in_HRRR_%s_%s.csv" % (DOMAIN, DATE.strftime('%Y_m%m_h%H')) 
@@ -371,7 +371,7 @@ if __name__ == '__main__':
         #months = [5, 6, 7, 8, 9, 10]
 
         year = 2019
-        months = [6]
+        months = [9]
         #months = [datetime.utcnow().month]
         hours = range(24)
 
