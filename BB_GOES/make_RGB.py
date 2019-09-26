@@ -14,9 +14,18 @@ http://rammb.cira.colostate.edu/training/visit/quick_guides/
     - AirMass
     - DayCloudPhase
     - DayConvection
+    - DayCloudConvection
+    - DayLandCloud
     - DayLandCloudFire
     - WaterVapor
+    - DifferentialWaterVapor
     - DaySnowFog
+    - NighttimeMicrophysics
+    - Dust
+    - SulfurDioxide
+    - Ash
+    - SplitWindowDifference
+    - NightFogDifference
 
 The returned RGB variable is a stacked np.array(). These can easily be viewed
 with plt.imshow(RGB). 
@@ -202,6 +211,49 @@ def DayConvection(C):
     return np.dstack([R, G, B])
 
 
+def DayCloudConvection(C):
+    """
+    Day Convection RGB:
+    http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_DayCloudConvectionRGB_final.pdf
+    """
+    # Load the three channels into appropriate R, G, and B variables
+    R, G, B = load_RGB_channels(C, (2,2,13))
+
+    # Normalize each channel by the appropriate range of values.
+    R = normalize(R, 0, 1)
+    G = normalize(G, 0, 1)
+    B = normalize(B, -70.15, 49.85)
+
+    # Invert B
+    B = 1-B
+
+    # Apply the gamma correction to Red channel.
+    #   corrected_value = value^(1/gamma)
+    gamma = 1.7
+    R = np.power(R, 1/gamma)
+    G = np.power(G, 1/gamma)
+
+    # The final RGB array :)
+    return np.dstack([R, G, B])
+
+
+def DayLandCloud(C):
+    """
+    Day Land Cloud Fire RGB:
+    http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_daylandcloudRGB_final.pdf
+    """
+    # Load the three channels into appropriate R, G, and B variables
+    R, G, B = load_RGB_channels(C, (5, 3, 2))
+
+    # Normalize each channel by the appropriate range of values  e.g. R = (R-minimum)/(maximum-minimum)
+    R = normalize(R, 0, .975)
+    G = normalize(G, 0, 1.086)
+    B = normalize(B, 0, 1)
+
+    # The final RGB array :)
+    return np.dstack([R, G, B])
+
+
 def DayLandCloudFire(C):
     """
     Day Land Cloud Fire RGB:
@@ -214,11 +266,6 @@ def DayLandCloudFire(C):
     R = normalize(R, 0, 1)
     G = normalize(G, 0, 1)
     B = normalize(B, 0, 1)
-
-    # Apply the gamma correction to Red channel.
-    #   corrected_value = value^(1/gamma)
-    gamma = 1
-    R = np.power(R, 1/gamma)
 
     # The final RGB array :)
     return np.dstack([R, G, B])
@@ -236,6 +283,35 @@ def WaterVapor(C):
     R = normalize(R, -70.86, 5.81)
     G = normalize(G, -58.49, -30.48)
     B = normalize(B, -28.03, -12.12)
+
+    # Invert the colors
+    R = 1-R
+    G = 1-G
+    B = 1-B
+
+    # The final RGB array :)
+    return np.dstack([R, G, B])
+
+
+def DifferentialWaterVapor(C):
+    """
+    Differential Water Vapor RGB:
+    http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DifferentialWaterVaporRGB_final.pdf
+    """
+    # Load the three channels into appropriate R, G, and B variables.
+    R = C['CMI_C10'].data - C['CMI_C08'].data
+    G = C['CMI_C10'].data - 273.15
+    B = C['CMI_C08'].data - 273.15
+
+    # Normalize each channel by the appropriate range of values. e.g. R = (R-minimum)/(maximum-minimum)
+    R = normalize(R, -3, 30)
+    G = normalize(G, -60, 5)
+    B = normalize(B, -64.65, -29.25)
+
+    # Gamma correction
+    R = np.power(R, 1/0.2587)
+    G = np.power(G, 1/0.4)
+    B = np.power(B, 1/0.4)
 
     # Invert the colors
     R = 1-R
@@ -269,6 +345,118 @@ def DaySnowFog(C):
 
     # The final RGB array :)
     return np.dstack([R, G, B])
+
+
+def NighttimeMicrophysics(C):
+    """
+    Nighttime Microphysics RGB:
+    http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_NtMicroRGB_final.pdf
+    """
+    # Load the three channels into appropriate R, G, and B variables
+    R = C['CMI_C15'].data - C['CMI_C13'].data
+    G = C['CMI_C13'].data - C['CMI_C07'].data
+    B = C['CMI_C13'].data - 273.15
+
+    # Normalize values    
+    R = normalize(R, -6.7, 2.6)
+    G = normalize(G, -3.1, 5.2)
+    B = normalize(B, -29.6, 19.5)
+
+    # The final RGB array :)
+    return np.dstack([R, G, B])
+
+
+def Dust(C):
+    """
+    SulfurDioxide RGB:
+    http://rammb.cira.colostate.edu/training/visit/quick_guides/Dust_RGB_Quick_Guide.pdf
+    """
+    # Load the three channels into appropriate R, G, and B variables
+    R = C['CMI_C15'].data - C['CMI_C13'].data
+    G = C['CMI_C14'].data - C['CMI_C11'].data
+    B = C['CMI_C13'].data - 273.15
+
+    # Normalize values    
+    R = normalize(R, -6.7, 2.6)
+    G = normalize(G, -0.5, 20)
+    B = normalize(B, -11.95, 15.55)
+
+    # Apply a gamma correction to the image
+    gamma = 2.5
+    G = np.power(G, 1/gamma)
+
+    # The final RGB array :)
+    return np.dstack([R, G, B])
+
+def SulfurDioxide(C):
+    """
+    SulfurDioxide RGB:
+    http://rammb.cira.colostate.edu/training/visit/quick_guides/Quick_Guide_SO2_RGB.pdf
+    """
+    # Load the three channels into appropriate R, G, and B variables
+    R = C['CMI_C09'].data - C['CMI_C10'].data
+    G = C['CMI_C13'].data - C['CMI_C11'].data
+    B = C['CMI_C07'].data - 273.15
+
+    # Normalize values    
+    R = normalize(R, -4, 2)
+    G = normalize(G, -4, 5)
+    B = normalize(B, -30.1, 29.8)
+
+    # The final RGB array :)
+    return np.dstack([R, G, B])
+
+
+def Ash(C):
+    """
+    Ash RGB:
+    http://rammb.cira.colostate.edu/training/visit/quick_guides/GOES_Ash_RGB.pdf
+    """
+    # Load the three channels into appropriate R, G, and B variables
+    R = C['CMI_C15'].data - C['CMI_C13'].data
+    G = C['CMI_C14'].data - C['CMI_C11'].data
+    B = C['CMI_C13'].data - 273.15
+
+    # Normalize values    
+    R = normalize(R, -6.7, 2.6)
+    G = normalize(G, -6, 6.3)
+    B = normalize(B, -29.55, 29.25)
+
+    # The final RGB array :)
+    return np.dstack([R, G, B])
+
+
+def SplitWindowDifference(C):
+    """
+    Split Window Difference RGB (greyscale):
+    http://cimss.ssec.wisc.edu/goes/OCLOFactSheetPDFs/ABIQuickGuide_SplitWindowDifference.pdf
+    """
+    # Load the three channels into appropriate R, G, and B variables
+    data = C['CMI_C15'].data - C['CMI_C13'].data
+
+    # Normalize values    
+    data = normalize(data, -10, 10)
+
+    # The final RGB array :)
+    return np.dstack([data, data, data])
+
+
+def NightFogDifference(C):
+    """
+    Night Fog Difference RGB (greyscale):
+    http://cimss.ssec.wisc.edu/goes/OCLOFactSheetPDFs/ABIQuickGuide_NightFogBTD.pdf
+    """
+    # Load the three channels into appropriate R, G, and B variables
+    data = C['CMI_C13'].data - C['CMI_C07'].data
+
+    # Normalize values    
+    data = normalize(data, -90, 15)
+    
+    # Invert data
+    data = 1-data
+
+    # The final RGB array :)
+    return np.dstack([data, data, data])
 
 
 if __name__ == '__main__':
