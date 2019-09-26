@@ -124,8 +124,8 @@ def get_hrrr_variable(DATE, variable,
         raise ValueError("Requested field must be 'prs' or 'sfc'. We do not store other fields in the archive")
     
     # Check that you requested the right forecasts available for the model
-    if model == 'hrrr' and fxx not in range(19):
-        raise ValueError("HRRR: fxx must be between 0 and 18\nYou requested f%02d" % fxx)
+    if model == 'hrrr' and fxx not in range(37):
+        raise ValueError("HRRR: fxx must be between 0 and 37\nYou requested f%02d" % fxx)
     elif model == 'hrrrX' and fxx != 0:
         raise ValueError("HRRRx: fxx must be 0. We do not store other forecasts in the archive.\nYou requested f%02d" % fxx)
     elif model == 'hrrrak' and fxx not in range(37):
