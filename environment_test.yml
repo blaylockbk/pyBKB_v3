@@ -1,0 +1,29 @@
+name: pyBKB_v3_test
+channels:
+  - conda-forge
+dependencies:
+  - python=3
+  - numpy
+  - matplotlib
+  - cartopy
+  - pylint
+  - jupyter
+  - jupyterlab
+  - netcdf4
+  - pandas
+  - geopandas
+  - scipy
+  - metpy
+  - siphon
+  - xarray
+  - basemap
+  - basemap-data-hires
+  - dask
+  - pyproj
+  - h5py
+  - shapely
+  - pytables
+  - scikit-learn
+  - pygrib  # Not available on Windows
+  - boto
+  - cfgrib  # Can read GRIB2 on Windows (need version 0.9.7+ for reading HRRR files)

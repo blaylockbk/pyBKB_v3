@@ -10,6 +10,7 @@ Contents:
     get_hrrr_latlon()          - Return a dict of the CONUS HRRR grid lat/lon.
     get_hrrr_all_valid()       - Return a 3D array of all forecasts at a valid datetime.
     get_hrrr_all_run()         - Return a 3D array of all forecasts from a single run.
+    get_hrrr_sounding()        - **see ./Pando_sounding.py**
 
     pluck_hrrr_point()         - Returns valid time and plucked value from lat/lon
     hrrr_subset()              - Returns a subset of the model domain
@@ -504,6 +505,17 @@ def get_hrrr_all_run(runDATE, variable, fxx=range(19), verbose=False):
 
 ###############################################################################
 ###############################################################################
+
+'''
+for get_hrrr_sounding(), use...
+
+from Pando_sounding import get_hrrr_sounding
+
+'''
+
+###############################################################################
+###############################################################################
+
 
 
 def pluck_hrrr_point(H, lat=40.771, lon=-111.965, verbose=True, XY_only=False):

@@ -12,3 +12,7 @@ dependencies:
   - matplotlib
   - jupyter
   - jupyterlab
+  - numpy
+  - requests
+  - pygrib
+  - pandas
