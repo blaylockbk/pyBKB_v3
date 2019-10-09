@@ -8,9 +8,9 @@ Requires cURL, wgrib2, and pygrib
 Contents:
     get_hrrr_variable()        - Returns dict of single HRRR variable.
     get_hrrr_latlon()          - Return a dict of the CONUS HRRR grid lat/lon.
+    get_hrrr_sounding()        - Return a sounding for a list of lat/lons.
     get_hrrr_all_valid()       - Return a 3D array of all forecasts at a valid datetime.
     get_hrrr_all_run()         - Return a 3D array of all forecasts from a single run.
-    get_hrrr_sounding()        - **see ./Pando_sounding.py**
 
     pluck_hrrr_point()         - Returns valid time and plucked value from lat/lon
     hrrr_subset()              - Returns a subset of the model domain
@@ -506,22 +506,95 @@ def get_hrrr_all_run(runDATE, variable, fxx=range(19), verbose=False):
 ###############################################################################
 ###############################################################################
 
-'''
-for get_hrrr_sounding(), use...
+def get_hrrr_sounding(DATE, variable, fxx=0, field='prs',
+                      lats=[40.771], lons=[-111.965], verbose=True):
+    """
+    Generate a sounding at all levels from HRRR grids.
+    NOTE: For locations that reside above 1000 mb (like Salt Lake City)
+          you will need to trim off the first few values.
 
-from Pando_sounding import get_hrrr_sounding
+    Input:
+        DATE     - datetime representing the valid date.
+        variable - a string indicating the variable in the .idx file (e.g. 'TMP')
+        fxx      - forecast hour. Default is 0 for F00.
+        field    - either 'prs' or 'sfc' (see details below, default is 'prs')
+        lats     - a list of latitude points (default is KSLC)
+        lons     - a list of longitude points (default is KSLC)
+    Return:
+        levels   - a list of levels in millibars
+        sounding - a list of the variable value at the corresponding levels.
 
-'''
+    ---------------------------------------------------------------------------
+    If field=='prs':
+        only fxx=0 is available in the Pando archive
+        levels = 1000 mb through 50 mb at 25 mb interval
+        Variables:
+            HGT   - Geopotential Height
+            TMP   - Temperature
+            RH    - Relative Humidity
+            DPT   - Dew Point
+            SPFH  - Specific Humidity
+            VVEL  - Vertical Velocity
+            UGRD  - U wind component
+            VGRD  - V wind component
+            ABSV  - Absolute Vorticity
+            CLWMR - Cloud water mixing ratio
+            CICE  - Cloud ice mixing ratio
+            RWMR  - Rain mixing ratio
+            SNMR  - Snow mixing ratio
+            GRLE  - Graupel mixing ratio
+
+    For surface field (sfc):
+        Available for f00-f18 (f36)
+        Levels = [1000, 925, 850, 700, 500, 250]
+        Variables:
+            HGT  - Geopotential Height (not for 250 mb)
+            TMP  - Temperature (not for 250 mb)
+            DPT  - Dew Point (not for 250 mb)
+            UGRD  - U wind component
+            VGRD  - V wind component
+    """
+    # What are the levels? That depends on the field and variable requested.
+    if field == 'prs':
+        levels = np.arange(1000, 25, -25)
+    elif field == 'sfc':
+        if 'GRD' in variable: # if we are requesting a UGRD or VGRD wind
+            levels = np.array([1000, 925, 850, 700, 500, 250])
+        else:
+            levels = np.array([1000, 925, 850, 700, 500])
+
+    # Function requests the valid date, but when what the model initalized?
+    RUN_DATE = DATE - timedelta(hours=fxx)
+
+    # Retrieve the HRRR latitude/longitude grids
+    Hlatlon = get_hrrr_latlon()
+
+    # What is the grid point we want to extract for each lat/lon pair?
+    xs = []
+    ys = []
+    for lat, lon in zip(lats, lons):
+        x, y = pluck_hrrr_point(Hlatlon, lat, lon, XY_only=True, verbose=verbose)
+        xs.append(x)
+        ys.append(y)
+
+    # For each lat/lon pair requested, extract a sounding
+    soundings = []
+    for x, y in zip(xs, ys):
+        sound = np.array([get_hrrr_variable(RUN_DATE, '%s:%s' % (variable, LEV), \
+                          field=field, value_only=True, verbose=False)['value'][x, y] for LEV in levels])
+        soundings.append(sound)
+
+    return levels, soundings
 
 ###############################################################################
 ###############################################################################
-
 
 
 def pluck_hrrr_point(H, lat=40.771, lon=-111.965, verbose=True, XY_only=False):
     """
     Pluck the value from the nearest lat/lon location in the HRRR grid.
-    
+    NOTE: If you have *many* points, I recommend using the KDTree method instead
+          https://github.com/blaylockbk/pyBKB_v3/blob/master/demo/KDTree_nearest_neighbor.ipynb
     Input:
         H       - A dictionary as returned from get_hrrr_variable()
                   NOTE: Requires the lat and lon keys in the dictionary.
