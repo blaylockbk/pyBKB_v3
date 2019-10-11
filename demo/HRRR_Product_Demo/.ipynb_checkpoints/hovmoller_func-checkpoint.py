@@ -3,7 +3,8 @@
 
 """
 Make a HRRR hovmoller for a point. These are the
-behind-the-scenes functions for hovmoller.ipynb
+behind-the-scenes functions for hovmoller.ipynb.
+It can also be run by itself via the command line.
 """
 
 import numpy as np
@@ -33,6 +34,14 @@ def get_spex():
                                    'contour':range(5, 50, 5),
                                    'vmax':cm_wind()['vmax'],
                                    'vmin':cm_wind()['vmin']},
+            'Wind Gust':{'HRRR var':'GUST:surface',
+                         'MW var':'wind_gust',
+                         'units': cm_wind()['units'],
+                         'cmap':cm_wind()['cmap'],
+                         'save':'WIND',
+                         'contour':range(5, 50, 5),
+                         'vmax':cm_wind()['vmax'],
+                         'vmin':cm_wind()['vmin']},
             'Simulated Reflectivity':{'HRRR var':'REFC:entire atmosphere',
                                       'MW var':'reflectivity',
                                       'units': reflect_ncdc()['units'],
@@ -113,7 +122,7 @@ def plot_hov(sDATE, eDATE, variable_number, stations, save=True):
         sDATE           - start datetime
         eDATE           - end datetime
         variable_number - variable number from the spex dictionary
-        stations        - a list of mesowest station ids
+        stations        - a list of mesowest station ids, e.g., ['WBB', 'UKBKB', 'MTMET']
         save            - True: saves the image
                           False: don't save the images
     Output: 
@@ -123,12 +132,15 @@ def plot_hov(sDATE, eDATE, variable_number, stations, save=True):
     spex = get_spex()
     
     # get the stations location dictionary (from MesoWest function)
+    stations = [s.upper() for s in stations]  # station IDs must be in all caps
     locations = get_mesowest_stninfo(stations)
     
     # based on the user input variable_number, which variable are we getting?
     variable = list(spex.keys())[variable_number]
        
     print('Requested %s' % variable)
+    print('Start Date', sDATE.strftime('%H:%M UTC %d %B %Y'))
+    print('  End Date', eDATE.strftime('%H:%M UTC %d %B %Y'))
     print('---------------------------------------')
     
     # retrieve the hovmoller dictionary
@@ -171,25 +183,60 @@ def plot_hov(sDATE, eDATE, variable_number, stations, save=True):
         if save: plt.savefig('%s_%s_%s_%s' % (stn, spex[variable]['save'], \
                                               sDATE.strftime('%Y%m%d-%H%M'), \
                                               eDATE.strftime('%Y%m%d-%H%M')), bbox_inches='tight')
+        
+    return hovmoller
 
 
 if __name__ == '__main__':
-    ## Recent Date range
-    UTC_now = datetime.utcnow()
-    sDATE = datetime(UTC_now.year, UTC_now.month, UTC_now.day, UTC_now.hour)-timedelta(hours=6)
-    eDATE = datetime(UTC_now.year, UTC_now.month, UTC_now.day, UTC_now.hour)+timedelta(hours=18)
+    
+    
+    # User input: What variable do you want to plot?
+    print_options()
+    print('Which variable do you want to plot?')
+    var_number = int(input('--> Type a number from the above list: '))
+    print()
+    
+    # User input: What stations do you want?
+    print('What stations do you want (MesoWest Station ID)? ')
+    print('  Type MesoWest Station IDs separated by a comma (i.e., WBB,KMRY,MTMET): ')
+    print('  or leave blank (press enter) to use defaults WBB,KMRY')
+    stations = input('--> enter MesoWest IDs: ')
+    if stations == '':
+        # Default List of MesoWest station IDs
+        stations = ['WBB', 'KMRY']
+    else:
+        stations = stations.split(',')
+    print()
+        
+    # User input: What date range do you want?
+    print('What 24 hour period do you want?')
+    print('Type the year,month,day,hour for the beginning the the period')
+    print('format: YYYY,MM,DD,HH')
+    print('or leave blank (press enter) for the most recent HRRR run.')
+    begin_date = input('--> begin date: ')
+    if begin_date == "":
+        ## Recent Date range
+        UTC_now = datetime.utcnow()
+        sDATE = datetime(UTC_now.year, UTC_now.month, UTC_now.day, UTC_now.hour)-timedelta(hours=6)
+        eDATE = datetime(UTC_now.year, UTC_now.month, UTC_now.day, UTC_now.hour)+timedelta(hours=18)
+    else:
+        year, month, day, hour = begin_date.split(',')
+        year = int(year)
+        month = int(month)
+        day=int(day)
+        hour=int(hour)
+        sDATE = datetime(year, month, day, hour)
+        eDATE = sDATE+ timedelta(hours=24)
+        
+    print()
 
     ## Custom Date range
     #sDATE = datetime(2019, 6, 1, 0)
     #eDATE = datetime(2019, 6, 2, 0)
     
-    print_options()
-    
-    print('Which variable do you want to plot?')
-    var_number = int(input('Choose a number from the above list: '))
-    
-    stations = ['WBB', 'KMRY']
-    plot_hov(sDATE, eDATE, var_number, stations)
+    # Now we can generate the figure
+    hov_data = plot_hov(sDATE, eDATE, var_number, stations)
+    plt.show()
 
 
 
