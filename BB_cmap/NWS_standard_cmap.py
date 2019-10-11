@@ -198,7 +198,7 @@ def cm_wind():
     return {'cmap':cmap,
             'vmin': 0,
             'vmax': 60,
-            'units': 'm/s'}
+            'units': r'ms$\mathregular{^{-1}}$'}
 
 def cm_sky():
     """
