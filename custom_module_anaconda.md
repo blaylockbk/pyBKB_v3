@@ -17,7 +17,7 @@ _If these instructions are out of date or incomplete, please update this documen
 Wim Cardon showed me how to make my own module to load anaconda3.
 1. Make a new directory for custom modules. Mine is called `BB_modules`.
 1. Make a directory in `BB_modules` called `bbanaconda3`. This name refers to my installed anaconda.
-1. Create a new file called `5.2.0.lua`. This name refers to the Anaconda version 5.2.0. That file should contain the following:
+1. In `bbanaconda3`, create a new file called `5.2.0.lua`. This name refers to the Anaconda version 5.2.0. That file should contain the following (note, you will need need to change the python path to `python3.7` if that is the version you downloaded):
        
        --  -*- lua -*-
        help([[Module which sets the PATH variable for anaconda 5.2.0
