@@ -274,7 +274,7 @@ def get_hrrr_variable(DATE, variable,
             if model == 'hrrr' or model == 'hrrrX':
                 regrid = 'lambert:262.500000:38.500000:38.500000:38.500000 237.280472:1799:3000.000000 21.138123:1059:3000.000000'
             os.system('%s %s -new_grid_winds earth -new_grid %s %s.earth' % (wgrib2, outfile, regrid, outfile))
-            os.system('rm -f %s' % outfile) # remove the original file
+            os.remove(outfile) # remove the original file
             outfile = outfile+'.earth'      # assign the `outfile`` as the regridded file
         
 
@@ -300,7 +300,8 @@ def get_hrrr_variable(DATE, variable,
                     value = np.ma.array(value, mask=value==0)
                 return_this = {'value': value}
             if removeFile:
-                os.system('rm -f %s' % (outfile))
+                grbs.close()
+                os.remove(outfile)
             return return_this
         else:
             if variable.split(':')[0] == 'UVGRD':
@@ -342,7 +343,8 @@ def get_hrrr_variable(DATE, variable,
                                'URL': grib2file,
                                'cURL': cURL}
             if removeFile:
-                os.system('rm -f %s' % (outfile))
+                grbs.close()
+                os.remove(outfile)
 
             return return_this
             

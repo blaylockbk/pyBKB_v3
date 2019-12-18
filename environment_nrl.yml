@@ -1,0 +1,25 @@
+name: NRL_main
+channels:
+  - defaults
+dependencies:
+  - python=3
+  - numpy
+  - scipy
+  - matplotlib
+  - cartopy
+  - basemap
+  - basemap-data-hires
+  - pylint
+  - requests
+  - jupyter
+  - jupyterlab
+  - netcdf4
+  - xarray
+  - pandas
+  - geopandas
+  - dask
+  - pygrib 
+  - pip:
+    - metpy
+    - pygrib
+  
