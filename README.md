@@ -52,6 +52,29 @@ List all the available environments
 
     conda info --envs
 
+---
+## How to using these modules
+`pyBKB_v3` is kept in `$HOME/pyBKB_v3`. One way to use these modules into your scripts is to append the sys path in your script.
+
+```python
+import sys
+sys.path.append('/path/to/folder/pyBKB_v3')
+
+# Load some module from pyBKB_v3
+import BB_mesowest
+```
+
+But that is a little cumbersome when you just want to get started quick.
+
+Instead, you can update the `PYTHONPATH` variable in your environment to automatically append the path. I inserted the following into my `.bashrc` file.
+
+```bash
+export PYTHONPATH=$HOME/pyBKB_v3:$PYTHONPATH
+```
+
+After that variable is applied, when you open python and print out the value of `sys.path`, you will see that the pyBKB_v3 directory is included. This means that a simple ```module load BB_mesowest``` in your python script will load the module. **This is an important change to know if you are not Brian and you are using these my modules, as some of my scripts assume the PYTHONPATH as been set while others will explicily append the sys.path.**
+
+---
 
 ## Tunnel Jupyter Lab through Putty
 When running Jupyter Lab on a remote computer, you can tunnel Jupyter to your local browser window.
