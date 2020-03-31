@@ -6,26 +6,29 @@ Get data from a HRRR grib2 file on the MesoWest HRRR Pando Archive
 Requires cURL, wgrib2, and pygrib
 
 Contents:
-    get_hrrr_variable()            - Returns dict of single HRRR variable.
-    get_hrrr_latlon()              - Return a dict of the CONUS HRRR grid lat/lon.
+    get_hrrr_variable()        - Returns dict of single HRRR variable.
+    get_hrrr_latlon()          - Return a dict of the CONUS HRRR grid lat/lon.
+    get_hrrr_sounding()        - Return a sounding for a list of lat/lons.
+    get_hrrr_all_valid()       - Return a 3D array of all forecasts at a valid datetime.
+    get_hrrr_all_run()         - Return a 3D array of all forecasts from a single run.
 
-    pluck_hrrr_point()             - Returns valid time and plucked value from lat/lon
-    hrrr_subset                    - Returns a subset of the model domain
-    hrrr_area_stats                - Returns statistics for the subset
+    pluck_hrrr_point()         - Returns valid time and plucked value from lat/lon
+    hrrr_subset()              - Returns a subset of the model domain
+    hrrr_area_stats()          - Returns statistics for the subset
 
-    pluck_point_MultiPro()         - Feeds variables from multiprocessing for timeseries
-    pluck_LocDic_MultiPro()        - Feeds variables from multiprocessing for timeseries for a Location Dictionary
+    pluck_point_MultiPro()     - Feeds variables from multiprocessing for timeseries
+    pluck_LocDic_MultiPro()    - Feeds variables from multiprocessing for timeseries for a Location Dictionary
 
-    point_hrrr_time_series()       - Returns HRRR time series at a single point in the domain.
-    LocDic_hrrr_time_series()      - Returns dictionary of the HRRR timeseries at multiple points.
-    point_hrrr_pollywog()          - Returns HRRR pollywog at a single point in the domain.
-    LocDic_hrrr_pollywog()         - Returns dictionary of the HRRR pollywog at multiple points
+    point_hrrr_time_series()   - Returns HRRR time series at a single point in the domain.
+    LocDic_hrrr_time_series()  - Returns dictionary of the HRRR timeseries at multiple points.
+    point_hrrr_pollywog()      - Returns HRRR pollywog at a single point in the domain.
+    LocDic_hrrr_pollywog()     - Returns dictionary of the HRRR pollywog at multiple points
 
-    LocDic_hrrr_hovmoller          - A hovmoller array to show all forecasts at each valid time.
+    LocDic_hrrr_hovmoller      - A hovmoller array to show all forecasts at each valid time.
 
-    The difference between a time series and a pollywog is that:
-        - a time series is for the all analyses (f00) or all forecast hours (fxx) for multiple runs
-        - a pollywog is a time series for the full forecast cycle of a single run, i.e. f00-f18
+The difference between a time series and a pollywog is that:
+    - a time series is for the all analyses (f00) or all forecast hours (fxx) for multiple runs
+    - a pollywog is a time series for the full forecast cycle of a single run, i.e. f00-f18
 
 A Special Note on U and V wind components:
     You can set the variable to be 'UVGRD:[level]' and the get_hrrr_variable
@@ -50,6 +53,7 @@ import ssl
 import re
 import numpy as np
 import multiprocessing
+import xarray as xr
 
 import sys
 sys.path.append('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3')
@@ -64,6 +68,8 @@ def get_hrrr_variable(DATE, variable,
                       field='sfc',
                       removeFile=True,
                       value_only=False,
+                      with_xarray=False,
+                      earth_relative_winds=False,
                       verbose=True,
                       outDIR='./'):
     """
@@ -92,6 +98,8 @@ def get_hrrr_variable(DATE, variable,
                         Returns output in 0.2 seconds
                      False: returns value and lat/lon, grib message, analysis and valid datetime.
                         Returns output in 0.75-1 seconds
+        with_xarray - True: Open the grib2 file with xarray and cfgrib
+                      False: (default) use pygrib to return data as a dictionary.
         verbose    - Prints some diagnostics
         outDIR     - Specify where the downloaded data should be downloaded.
                      Default is the current directory. 
@@ -122,8 +130,8 @@ def get_hrrr_variable(DATE, variable,
         raise ValueError("Requested field must be 'prs' or 'sfc'. We do not store other fields in the archive")
     
     # Check that you requested the right forecasts available for the model
-    if model == 'hrrr' and fxx not in range(19):
-        raise ValueError("HRRR: fxx must be between 0 and 18\nYou requested f%02d" % fxx)
+    if model == 'hrrr' and fxx not in range(37):
+        raise ValueError("HRRR: fxx must be between 0 and 37\nYou requested f%02d" % fxx)
     elif model == 'hrrrX' and fxx != 0:
         raise ValueError("HRRRx: fxx must be 0. We do not store other forecasts in the archive.\nYou requested f%02d" % fxx)
     elif model == 'hrrrak' and fxx not in range(37):
@@ -173,6 +181,12 @@ def get_hrrr_variable(DATE, variable,
       today's date. If it is, then I'll send you to NOMADS. Deal? :)
                                                   -Sincerely, Brian
     """
+
+    # Rados Gateway is the URL to download a file from.
+    # You should use 'pando-rgw01', but if you get a certificate error, 
+    # then try 'pando-rgw02'.
+    #gateway = 'pando-rgw01'
+    gateway = 'pando-rgw02'
     
     # If the datetime requested is less than six hours ago, then the file is 
     # most likely on Pando. Else, download from NOMADS. 
@@ -181,8 +195,8 @@ def get_hrrr_variable(DATE, variable,
         # Get HRRR from Pando
         if verbose:
             print("Oh, good, you requested a date that should be on Pando.")
-        grib2file = 'https://pando-rgw01.chpc.utah.edu/%s/%s/%s/%s.t%02dz.wrf%sf%02d.grib2' \
-                    % (model, field,  DATE.strftime('%Y%m%d'), model, DATE.hour, field, fxx)
+        grib2file = 'https://%s.chpc.utah.edu/%s/%s/%s/%s.t%02dz.wrf%sf%02d.grib2' \
+                    % (gateway, model, field,  DATE.strftime('%Y%m%d'), model, DATE.hour, field, fxx)
         fileidx = grib2file+'.idx'
     else:
         # Get operational HRRR from NOMADS
@@ -192,9 +206,9 @@ def get_hrrr_variable(DATE, variable,
                 print("!! Hey! You are requesting a date that is not on the Pando archive yet.  !!")
                 print("!! That's ok, I'll redirect you to the NOMADS server. :)                 !!")
                 print("---------------------------------------------------------------------------\n")
-            #grib2file = 'http://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.%s/%s.t%02dz.wrf%sf%02d.grib2' \
+            #grib2file = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.%s/%s.t%02dz.wrf%sf%02d.grib2' \
             #            % (DATE.strftime('%Y%m%d'), model, DATE.hour, field, fxx)
-            grib2file = 'http://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.%s/conus/hrrr.t%02dz.wrf%sf%02d.grib2' \
+            grib2file = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.%s/conus/hrrr.t%02dz.wrf%sf%02d.grib2' \
                         % (DATE.strftime('%Y%m%d'), DATE.hour, field, fxx)
             fileidx = grib2file+'.idx'
         elif model == 'hrrrX':
@@ -209,7 +223,7 @@ def get_hrrr_variable(DATE, variable,
                 print("!! Hey! You are requesting a date that is not on the Pando archive yet.  !!")
                 print("!! That's ok, I'll redirect you to the PARALLEL NOMADS server. :)        !!")
                 print("---------------------------------------------------------------------------\n")
-            grib2file = 'http://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.%s/alaska/hrrr.t%02dz.wrf%sf%02d.ak.grib2' \
+            grib2file = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.%s/alaska/hrrr.t%02dz.wrf%sf%02d.ak.grib2' \
                         % (DATE.strftime('%Y%m%d'), DATE.hour, field, fxx)
             fileidx = grib2file+'.idx'
 
@@ -245,7 +259,8 @@ def get_hrrr_variable(DATE, variable,
                 byte_range = str(rangestart) + '-' + str(rangeend)
             gcnt += 1
         ## 2) When the byte range is discovered, use cURL to download the file.
-        os.system('curl -s -o %s --range %s %s' % (outfile, byte_range, grib2file))
+        cURL = 'curl -s -o %s --range %s %s' % (outfile, byte_range, grib2file)
+        os.system(cURL)
         
         
         ## --- Convert winds to earth-relative --------------------------------
@@ -255,17 +270,35 @@ def get_hrrr_variable(DATE, variable,
         # and # 'VGRD:[level] independently.
         # !!! See more information on why/how to do this here:
         # https://github.com/blaylockbk/pyBKB_v2/blob/master/demos/HRRR_earthRelative_vs_gridRelative_winds.ipynb
-        if variable.split(':')[0] == 'UVGRD':
-            if verbose:
-                print(' >> Converting winds to earth-relative')
-            wgrib2 = '/uufs/chpc.utah.edu/sys/installdir/wgrib2/2.0.2/wgrib2/wgrib2'
-            if model == 'hrrrak':
-                regrid = 'nps:225.000000:60.000000 185.117126:1299:3000.000000 41.612949:919:3000.000000'
-            if model == 'hrrr' or model == 'hrrrX':
-                regrid = 'lambert:262.500000:38.500000:38.500000:38.500000 237.280472:1799:3000.000000 21.138123:1059:3000.000000'
-            os.system('%s %s -new_grid_winds earth -new_grid %s %s.earth' % (wgrib2, outfile, regrid, outfile))
-            os.system('rm -f %s' % outfile) # remove the original file
-            outfile = outfile+'.earth'      # assign the `outfile`` as the regridded file
+        if earth_relative_winds:
+            if variable.split(':')[0] == 'UVGRD':
+                if verbose:
+                    print(' >> Converting winds to earth-relative')
+                # Specify the wgrib2 executable path
+                #wgrib2 = '/uufs/chpc.utah.edu/sys/installdir/wgrib2/2.0.2/wgrib2/wgrib2'
+                wgrib2 = 'wgrib2'
+                if model == 'hrrrak':
+                    regrid = 'nps:225.000000:60.000000 185.117126:1299:3000.000000 41.612949:919:3000.000000'
+                if model == 'hrrr' or model == 'hrrrX':
+                    regrid = 'lambert:262.500000:38.500000:38.500000:38.500000 237.280472:1799:3000.000000 21.138123:1059:3000.000000'
+                os.system('%s %s -new_grid_winds earth -new_grid %s %s.earth' % (wgrib2, outfile, regrid, outfile))
+                os.remove(outfile) # remove the original file
+                outfile = outfile+'.earth'      # assign the `outfile`` as the regridded file
+
+            
+        #======================================================================
+        ## Return the HRRR data with xarray and cfgrib
+        ## Note, will return the full data, not just the values.
+        #======================================================================
+        if with_xarray:
+            H = xr.open_dataset(outfile,
+                                engine='cfgrib',
+                                backend_kwargs={'indexpath':''}).copy(deep=True)
+            if removeFile:
+                os.remove(outfile)
+            return H            
+        #======================================================================    
+        #======================================================================
         
 
         ## 3) Get data from the file, using pygrib and return what we want to use
@@ -280,12 +313,18 @@ def get_hrrr_variable(DATE, variable,
         if value_only:
             if variable.split(':')[0] == 'UVGRD':
                 return_this = {'UGRD': grbs[1].values,
-                                'VGRD': grbs[2].values,
-                                'SPEED': wind_uv_to_spd(grbs[1].values, grbs[2].values)}
+                               'VGRD': grbs[2].values,
+                               'SPEED': wind_uv_to_spd(grbs[1].values, grbs[2].values)}
             else:
-                return_this = {'value': grbs[1].values}
+                value = grbs[1].values
+                if variable=='REFC:entire':
+                    value = np.ma.array(value, mask=value==-10)
+                elif variable=='LTNG:entire':
+                    value = np.ma.array(value, mask=value==0)
+                return_this = {'value': value}
             if removeFile:
-                os.system('rm -f %s' % (outfile))
+                grbs.close()
+                os.remove(outfile)
             return return_this
         else:
             if variable.split(':')[0] == 'UVGRD':
@@ -297,29 +336,38 @@ def get_hrrr_variable(DATE, variable,
                                'SPEED': wind_uv_to_spd(value1, grbs[2].values),
                                'lat': lat,
                                'lon': lon,
+                               'fxx': fxx,
                                'valid': grbs[1].validDate,
                                'anlys': grbs[1].analDate,
                                'msg': [str(grbs[1]), str(grbs[2])],
                                'name': [grbs[1].name, grbs[2].name],
                                'units': [grbs[1].units, grbs[2].units],
                                'level': [grbs[1].level, grbs[2].level],
-                               'URL': grib2file}
+                               'URL': grib2file,
+                               'cURL':cURL}
             else:
                 value, lat, lon = grbs[1].data()
+                if variable=='REFC:entire':
+                    value = np.ma.array(value, mask=value==-10)
+                elif variable=='LTNG:entire':
+                    value = np.ma.array(value, mask=value==0)
                 if model == 'hrrrak':
                     lon[lon>0] -= 360
                 return_this = {'value': value,
                                'lat': lat,
                                'lon': lon,
+                               'fxx': fxx,
                                'valid': grbs[1].validDate,
                                'anlys': grbs[1].analDate,
                                'msg': str(grbs[1]),
                                'name': grbs[1].name,
                                'units': grbs[1].units,
                                'level': grbs[1].level,
-                               'URL': grib2file}                
+                               'URL': grib2file,
+                               'cURL': cURL}
             if removeFile:
-                os.system('rm -f %s' % (outfile))
+                grbs.close()
+                os.remove(outfile)
 
             return return_this
             
@@ -341,7 +389,8 @@ def get_hrrr_variable(DATE, variable,
                 'valid' : np.nan,
                 'anlys' : np.nan,
                 'msg' : np.nan,
-                'URL': grib2file}
+                'URL': grib2file,
+                'cURL': None}
 
 
 ###############################################################################
@@ -350,16 +399,224 @@ def get_hrrr_variable(DATE, variable,
 
 def get_hrrr_latlon(DICT=True):
     """
-    Simply get the HRRR latitude and longitude grid, a file stored locally
+    Get the HRRR latitude and longitude grid, a file stored locally
     """
-    import h5py
-    FILE = '/uufs/chpc.utah.edu/common/home/horel-group7/Pando/hrrr/HRRR_latlon.h5'
-    f = h5py.File(FILE)
-    if DICT:
-        return {'lat': f['latitude'][:],
-                'lon': f['longitude'][:]}
+    import xarray
+    
+    data = '/uufs/chpc.utah.edu/common/home/horel-group7/Pando/hrrr/HRRR_latlon.h5'
+    if os.path.exists(data):
+        x = xarray.open_dataset(data)
+        lat = x.latitude.data
+        lon = x.longitude.data
     else:
-        return f['latitude'][:], f['longitude'][:]
+        # Download a sample file and extract LAT and LON from it
+        H = get_hrrr_variable(datetime(2020, 1, 1), 'TMP:2 m', verbose=False)
+        lat = H['lat']
+        lon = H['lon']
+    
+    if DICT:
+        return {'lat': lat,
+                'lon': lon}
+    else:
+        return lat, lon
+
+
+###############################################################################
+###############################################################################
+
+def get_hrrr_all_valid_MP(inputs):
+    """
+    Return a forecast for a valid time.
+    Input: (validDATE, VAR, fxx, verbose)
+    """
+    validDATE, VAR, fxx, verbose = inputs
+    return get_hrrr_variable(validDATE-timedelta(hours=fxx), VAR, fxx=fxx, value_only=True, verbose=verbose)['value']
+
+
+def get_hrrr_all_valid(validDATE, variable, fxx=range(19), verbose=False):
+    """
+    Return a 3D array with all forecasts for a single valid time.
+    This is about seven times faster than using a simple list comprehension.
+    #
+    Input:
+        validDATE - datetime for the valid date of interest
+        variable  - HRRR variable string (e.g. 'TMP:2 m')
+        fxx       - forecast hours you want to retrieve. Default 0-18.
+    #
+    Return:
+        3D array of the forecasts for the requested valid time. The first
+        dimension matches the leadtime of each fxx.
+    """
+    inputs = [[validDATE, variable, f, verbose] for f in fxx]
+    #
+    # Don't use more cores than needed, and don't use all available cores
+    cores = np.minimum(len(range(19)), multiprocessing.cpu_count()-1)
+    with multiprocessing.Pool(19) as p:
+        HH = p.map(get_hrrr_all_valid_MP, inputs)
+        p.close()
+        p.join()
+    #
+    # If the returned value is nan, then make an array full of nans
+    for i, hh in enumerate(HH):
+        if np.shape(hh) == ():
+            HH[i] = np.ones([1059, 1799])*np.nan
+    #
+    if any([type(i)==np.ma.core.MaskedArray for i in HH]):
+        return np.ma.array(HH)
+    else:
+        return np.array(HH)
+
+
+###############################################################################
+###############################################################################
+
+def get_hrrr_all_run_MP(inputs):
+    """
+    Return a forecast for a run time.
+    Input: (runDATE, VAR, fxx, verbose)
+    """
+    runDATE, VAR, fxx, verbose = inputs
+    #
+    if VAR.split(':')[0] == 'UVGRD':
+        data = get_hrrr_variable(runDATE, VAR, fxx=fxx, value_only=True, verbose=verbose)
+        try:
+            return [data['UGRD'], data['VGRD'], data['SPEED']]
+        except:
+            return [np.nan, np.nan, np.nan]
+    else:
+        return get_hrrr_variable(runDATE, VAR, fxx=fxx, value_only=True, verbose=verbose)['value']
+
+
+def get_hrrr_all_run(runDATE, variable, fxx=range(19), verbose=False):
+    """
+    Return a 3D array with all forecasts for a single run time.
+    This is about seven times faster than using a simple list comprehension.
+    #
+    Input:
+          runDATE - datetime for the model run of interest
+        variable  - HRRR variable string (e.g. 'TMP:2 m')
+        fxx       - forecast hours you want to retrieve. Default 0-18.
+    #
+    Return:
+        3D array of the forecasts for the requested valid time. The first
+        dimension matches the leadtime of each fxx.
+    """
+    inputs = [[runDATE, variable, f, verbose] for f in fxx]
+    #
+    # Don't use more cores than needed, and don't use all available cores
+    cores = np.minimum(len(range(19)), multiprocessing.cpu_count()-1)
+    with multiprocessing.Pool(19) as p:
+        HH = p.map(get_hrrr_all_run_MP, inputs)
+        p.close()
+        p.join()
+    #
+    # Special case for UVGRD
+    if variable.split(':')[0] == 'UVGRD':
+        # If the returned value was nan, then make an array full of nans
+        for i, hh in enumerate(HH):
+            if np.shape(hh) == (3,):
+                fill = np.ones([1059, 1799])*np.nan
+                HH[i] = [fill, fill, fill]
+        #
+        HH_u = [HH[f][0][:] for f in fxx]
+        HH_v = [HH[f][1][:] for f in fxx]
+        HH_spd = [HH[f][2][:] for f in fxx]
+        #
+        print('Return in order [HH_ugrd, HH_vgrd, HH_speed]')
+        return [HH_u, HH_v, HH_spd]
+    else:
+        # If the returned value is nan, then make an array full of nans
+        for i, hh in enumerate(HH):
+            if np.shape(hh) == ():
+                HH[i] = np.ones([1059, 1799])*np.nan
+        # Return a masked array it the original had masked arrays.
+        if any([type(i)==np.ma.core.MaskedArray for i in HH]):
+            return np.ma.array(HH)
+        else:
+            return np.array(HH)
+
+###############################################################################
+###############################################################################
+
+def get_hrrr_sounding(DATE, variable, fxx=0, field='prs',
+                      lats=[40.771], lons=[-111.965], verbose=True):
+    """
+    Generate a sounding at all levels from HRRR grids.
+    NOTE: For locations that reside above 1000 mb (like Salt Lake City)
+          you will need to trim off the first few values.
+
+    Input:
+        DATE     - datetime representing the valid date.
+        variable - a string indicating the variable in the .idx file (e.g. 'TMP')
+        fxx      - forecast hour. Default is 0 for F00.
+        field    - either 'prs' or 'sfc' (see details below, default is 'prs')
+        lats     - a list of latitude points (default is KSLC)
+        lons     - a list of longitude points (default is KSLC)
+    Return:
+        levels   - a list of levels in millibars
+        sounding - a list of the variable value at the corresponding levels.
+
+    ---------------------------------------------------------------------------
+    If field=='prs':
+        only fxx=0 is available in the Pando archive
+        levels = 1000 mb through 50 mb at 25 mb interval
+        Variables:
+            HGT   - Geopotential Height
+            TMP   - Temperature
+            RH    - Relative Humidity
+            DPT   - Dew Point
+            SPFH  - Specific Humidity
+            VVEL  - Vertical Velocity
+            UGRD  - U wind component
+            VGRD  - V wind component
+            ABSV  - Absolute Vorticity
+            CLWMR - Cloud water mixing ratio
+            CICE  - Cloud ice mixing ratio
+            RWMR  - Rain mixing ratio
+            SNMR  - Snow mixing ratio
+            GRLE  - Graupel mixing ratio
+
+    For surface field (sfc):
+        Available for f00-f18 (f36)
+        Levels = [1000, 925, 850, 700, 500, 250]
+        Variables:
+            HGT  - Geopotential Height (not for 250 mb)
+            TMP  - Temperature (not for 250 mb)
+            DPT  - Dew Point (not for 250 mb)
+            UGRD  - U wind component
+            VGRD  - V wind component
+    """
+    # What are the levels? That depends on the field and variable requested.
+    if field == 'prs':
+        levels = np.arange(1000, 25, -25)
+    elif field == 'sfc':
+        if 'GRD' in variable: # if we are requesting a UGRD or VGRD wind
+            levels = np.array([1000, 925, 850, 700, 500, 250])
+        else:
+            levels = np.array([1000, 925, 850, 700, 500])
+
+    # Function requests the valid date, but when what the model initalized?
+    RUN_DATE = DATE - timedelta(hours=fxx)
+
+    # Retrieve the HRRR latitude/longitude grids
+    Hlatlon = get_hrrr_latlon()
+
+    # What is the grid point we want to extract for each lat/lon pair?
+    xs = []
+    ys = []
+    for lat, lon in zip(lats, lons):
+        x, y = pluck_hrrr_point(Hlatlon, lat, lon, XY_only=True, verbose=verbose)
+        xs.append(x)
+        ys.append(y)
+
+    # For each lat/lon pair requested, extract a sounding
+    soundings = []
+    for x, y in zip(xs, ys):
+        sound = np.array([get_hrrr_variable(RUN_DATE, '%s:%s' % (variable, LEV), \
+                          field=field, value_only=True, verbose=False)['value'][x, y] for LEV in levels])
+        soundings.append(sound)
+
+    return levels, soundings
 
 ###############################################################################
 ###############################################################################
@@ -368,7 +625,8 @@ def get_hrrr_latlon(DICT=True):
 def pluck_hrrr_point(H, lat=40.771, lon=-111.965, verbose=True, XY_only=False):
     """
     Pluck the value from the nearest lat/lon location in the HRRR grid.
-    
+    NOTE: If you have *many* points, I recommend using the KDTree method instead
+          https://github.com/blaylockbk/pyBKB_v3/blob/master/demo/KDTree_nearest_neighbor.ipynb
     Input:
         H       - A dictionary as returned from get_hrrr_variable()
                   NOTE: Requires the lat and lon keys in the dictionary.
@@ -430,9 +688,10 @@ def pluck_hrrr_point(H, lat=40.771, lon=-111.965, verbose=True, XY_only=False):
         return [np.nan, np.nan]
 
 
-def hrrr_subset(H, half_box=9, lat=40.771, lon=-111.965, verbose=True):
+def hrrr_subset(H, half_box=9, lat=40.771, lon=-111.965, thin=1, verbose=True):
     """
     Trim the HRRR data to a box around a center point.
+    Very handy when you need to plot wind barbs for a smaller domain.
 
     Input:
         H        - A dictionary as returned from get_hrrr_variable()
@@ -440,24 +699,25 @@ def hrrr_subset(H, half_box=9, lat=40.771, lon=-111.965, verbose=True):
                    surrounding the center point.
         lat      - The center latitude
         lon      - The center longitude
+        thin     - Thin out the values (set to 2 for every other value)
     Return:
         A dictionary of the values and lat/lon grids for the subset.
         If H variable is UVGRD, then output separate key for U, V, and SPEED.
     """
     x, y = pluck_hrrr_point(H, lat=lat, lon=lon, verbose=verbose, XY_only=True)
-    
+
     if 'UGRD' in H:
-        subset = {'lat': H['lat'][x-half_box:x+half_box, y-half_box:y+half_box],
-                  'lon': H['lon'][x-half_box:x+half_box, y-half_box:y+half_box],
-                  'UGRD': H['UGRD'][x-half_box:x+half_box, y-half_box:y+half_box],
-                  'VGRD': H['VGRD'][x-half_box:x+half_box, y-half_box:y+half_box],
-                  'SPEED': H['SPEED'][x-half_box:x+half_box, y-half_box:y+half_box],                
+        subset = {'lat': H['lat'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],
+                  'lon': H['lon'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],
+                  'UGRD': H['UGRD'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],
+                  'VGRD': H['VGRD'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],
+                  'SPEED': H['SPEED'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],                
                   'x': x,
                   'y': y}
     else:
-        subset = {'lat': H['lat'][x-half_box:x+half_box, y-half_box:y+half_box],
-                  'lon': H['lon'][x-half_box:x+half_box, y-half_box:y+half_box],
-                  'value': H['value'][x-half_box:x+half_box, y-half_box:y+half_box],
+        subset = {'lat': H['lat'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],
+                  'lon': H['lon'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],
+                  'value': H['value'][x-half_box:x+half_box, y-half_box:y+half_box][::thin,::thin],
                   'x': x,
                   'y': y}
     if verbose:

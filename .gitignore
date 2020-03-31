@@ -1,6 +1,9 @@
 .DS_Store
 Thumbs.db
 
+.ipynb_checkpoints/
+__pycache__/
+
 get_credentials.py
 *.nc
 *.grib2*

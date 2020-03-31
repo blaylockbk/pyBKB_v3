@@ -53,6 +53,7 @@ import ssl
 import re
 import numpy as np
 import multiprocessing
+import xarray as xr
 
 import sys
 sys.path.append('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3')
@@ -67,6 +68,8 @@ def get_hrrr_variable(DATE, variable,
                       field='sfc',
                       removeFile=True,
                       value_only=False,
+                      with_xarray=False,
+                      earth_relative_winds=False,
                       verbose=True,
                       outDIR='./'):
     """
@@ -95,6 +98,8 @@ def get_hrrr_variable(DATE, variable,
                         Returns output in 0.2 seconds
                      False: returns value and lat/lon, grib message, analysis and valid datetime.
                         Returns output in 0.75-1 seconds
+        with_xarray - True: Open the grib2 file with xarray and cfgrib
+                      False: (default) use pygrib to return data as a dictionary.
         verbose    - Prints some diagnostics
         outDIR     - Specify where the downloaded data should be downloaded.
                      Default is the current directory. 
@@ -265,17 +270,35 @@ def get_hrrr_variable(DATE, variable,
         # and # 'VGRD:[level] independently.
         # !!! See more information on why/how to do this here:
         # https://github.com/blaylockbk/pyBKB_v2/blob/master/demos/HRRR_earthRelative_vs_gridRelative_winds.ipynb
-        if variable.split(':')[0] == 'UVGRD':
-            if verbose:
-                print(' >> Converting winds to earth-relative')
-            wgrib2 = '/uufs/chpc.utah.edu/sys/installdir/wgrib2/2.0.2/wgrib2/wgrib2'
-            if model == 'hrrrak':
-                regrid = 'nps:225.000000:60.000000 185.117126:1299:3000.000000 41.612949:919:3000.000000'
-            if model == 'hrrr' or model == 'hrrrX':
-                regrid = 'lambert:262.500000:38.500000:38.500000:38.500000 237.280472:1799:3000.000000 21.138123:1059:3000.000000'
-            os.system('%s %s -new_grid_winds earth -new_grid %s %s.earth' % (wgrib2, outfile, regrid, outfile))
-            os.remove(outfile) # remove the original file
-            outfile = outfile+'.earth'      # assign the `outfile`` as the regridded file
+        if earth_relative_winds:
+            if variable.split(':')[0] == 'UVGRD':
+                if verbose:
+                    print(' >> Converting winds to earth-relative')
+                # Specify the wgrib2 executable path
+                #wgrib2 = '/uufs/chpc.utah.edu/sys/installdir/wgrib2/2.0.2/wgrib2/wgrib2'
+                wgrib2 = 'wgrib2'
+                if model == 'hrrrak':
+                    regrid = 'nps:225.000000:60.000000 185.117126:1299:3000.000000 41.612949:919:3000.000000'
+                if model == 'hrrr' or model == 'hrrrX':
+                    regrid = 'lambert:262.500000:38.500000:38.500000:38.500000 237.280472:1799:3000.000000 21.138123:1059:3000.000000'
+                os.system('%s %s -new_grid_winds earth -new_grid %s %s.earth' % (wgrib2, outfile, regrid, outfile))
+                os.remove(outfile) # remove the original file
+                outfile = outfile+'.earth'      # assign the `outfile`` as the regridded file
+
+            
+        #======================================================================
+        ## Return the HRRR data with xarray and cfgrib
+        ## Note, will return the full data, not just the values.
+        #======================================================================
+        if with_xarray:
+            H = xr.open_dataset(outfile,
+                                engine='cfgrib',
+                                backend_kwargs={'indexpath':''}).copy(deep=True)
+            if removeFile:
+                os.remove(outfile)
+            return H            
+        #======================================================================    
+        #======================================================================
         
 
         ## 3) Get data from the file, using pygrib and return what we want to use
@@ -379,10 +402,17 @@ def get_hrrr_latlon(DICT=True):
     Get the HRRR latitude and longitude grid, a file stored locally
     """
     import xarray
+    
     data = '/uufs/chpc.utah.edu/common/home/horel-group7/Pando/hrrr/HRRR_latlon.h5'
-    x = xarray.open_dataset(data)
-    lat = x.latitude.data
-    lon = x.longitude.data
+    if os.path.exists(data):
+        x = xarray.open_dataset(data)
+        lat = x.latitude.data
+        lon = x.longitude.data
+    else:
+        # Download a sample file and extract LAT and LON from it
+        H = get_hrrr_variable(datetime(2020, 1, 1), 'TMP:2 m', verbose=False)
+        lat = H['lat']
+        lon = H['lon']
     
     if DICT:
         return {'lat': lat,

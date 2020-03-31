@@ -8,7 +8,7 @@ I got this from somewhere
 
 from matplotlib.colors import LinearSegmentedColormap
 
-def cm_reflec(return_units=False, verbose=False):
+def reflect_ncdc():
     reflect_ncdc_cdict = {'red':((0.0000, 0.000, 0.000),
                                  (0.0714, 0.000, 0.000),
                                  (0.1429, 0.000, 0.000),
@@ -54,22 +54,12 @@ def cm_reflec(return_units=False, verbose=False):
                                   (0.8571, 1.000, 1.000),
                                   (0.9286, 0.788, 0.788),
                                   (1.000, 0.923, 0.923))}
-    cmap = LinearSegmentedColormap('REFLECT_NCDC_COLTBL', reflect_ncdc_cdict)
+    reflect_ncdc_coltbl = LinearSegmentedColormap('REFLECT_NCDC_COLTBL', reflect_ncdc_cdict)
     
-    
-    kwargs = {}
-    kwargs['cmap'] = cmap
-    kwargs['vmin'] = 0
-    kwargs['vmax'] = 80
-    
-    units = 'dBZ'
-    if return_units:
-        kwargs['units'] = units
-    if verbose:
-        print(f'NCDC Reflectivity cmap units are {units}')
-        
-    return kwargs
-
+    return {'cmap':reflect_ncdc_coltbl,
+            'vmin': 0,
+            'vmax': 80,
+            'units': 'dBZ'}
 
 if __name__ == '__main__':
     
