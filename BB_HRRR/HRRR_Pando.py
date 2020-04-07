@@ -294,6 +294,9 @@ def get_hrrr_variable(DATE, variable,
             H = xr.open_dataset(outfile,
                                 engine='cfgrib',
                                 backend_kwargs={'indexpath':''}).copy(deep=True)
+            H.attrs['URL'] = grib2file
+            H.attrs['cURL'] = cURL
+            
             if removeFile:
                 os.remove(outfile)
             return H            
