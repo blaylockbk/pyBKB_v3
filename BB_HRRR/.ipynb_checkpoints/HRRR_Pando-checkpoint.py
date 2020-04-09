@@ -55,6 +55,8 @@ import numpy as np
 import multiprocessing
 import xarray as xr
 
+import cartopy.crs as ccrs
+
 import sys
 sys.path.append('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3')
 from BB_wx_calcs.wind import wind_uv_to_spd
@@ -296,6 +298,17 @@ def get_hrrr_variable(DATE, variable,
                                 backend_kwargs={'indexpath':''}).copy(deep=True)
             H.attrs['URL'] = grib2file
             H.attrs['cURL'] = cURL
+            
+            ## Build cartopy map projection if possible
+            # Variables Attributes
+            var_attrs = H[list(H)[0]].attrs
+            if var_attrs['GRIB_gridType'] == 'lambert':
+                lc_HRRR_kwargs = {'central_latitude'   : var_attrs['GRIB_LaDInDegrees'],
+                                  'central_longitude'  : var_attrs['GRIB_LoVInDegrees'],
+                                  'standard_parallels' : (var_attrs['GRIB_Latin1InDegrees'],\
+                                                          var_attrs['GRIB_Latin2InDegrees'])}
+                lc = ccrs.LambertConformal(**lc_HRRR_kwargs)
+            H.attrs['crs'] = lc    
             
             if removeFile:
                 os.remove(outfile)

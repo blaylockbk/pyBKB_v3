@@ -55,6 +55,8 @@ import numpy as np
 import multiprocessing
 import xarray as xr
 
+import cartopy.crs as ccrs
+
 import sys
 sys.path.append('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3')
 from BB_wx_calcs.wind import wind_uv_to_spd
@@ -100,6 +102,7 @@ def get_hrrr_variable(DATE, variable,
                         Returns output in 0.75-1 seconds
         with_xarray - True: Open the grib2 file with xarray and cfgrib
                       False: (default) use pygrib to return data as a dictionary.
+                      Will also
         verbose    - Prints some diagnostics
         outDIR     - Specify where the downloaded data should be downloaded.
                      Default is the current directory. 
@@ -296,6 +299,23 @@ def get_hrrr_variable(DATE, variable,
                                 backend_kwargs={'indexpath':''}).copy(deep=True)
             H.attrs['URL'] = grib2file
             H.attrs['cURL'] = cURL
+            
+            ## Build cartopy map projection if possible
+            # Variables Attributes
+            var_attrs = H[list(H)[0]].attrs
+            if var_attrs['GRIB_gridType'] == 'lambert':
+                lc_HRRR_kwargs = {'central_latitude'   : var_attrs['GRIB_LaDInDegrees'],
+                                  'central_longitude'  : var_attrs['GRIB_LoVInDegrees'],
+                                  'standard_parallels' : (var_attrs['GRIB_Latin1InDegrees'],\
+                                                          var_attrs['GRIB_Latin2InDegrees'])}
+                lc = ccrs.LambertConformal(**lc_HRRR_kwargs)
+            
+            # Put this projection info as an attribute for the Dataset
+            # for easy access...
+            H.attrs['crs'] = lc
+            # ...and add as attrs for each variable, so it's not lost in a merge.
+            for this_var in list(H):
+                H[this_var].attrs['crs'] = lc
             
             if removeFile:
                 os.remove(outfile)
