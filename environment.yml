@@ -24,6 +24,6 @@ dependencies:
   - shapely
   - pytables
   - scikit-learn
-  - pygrib  # Not available on Windows
+  - pygrib
   - boto
-  - cfgrib  # Can read GRIB2 on Windows (need version 0.9.7+ for reading HRRR files)
+  - cfgrib
