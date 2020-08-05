@@ -1,112 +1,135 @@
 # Brian Blaylock
 # July 3, 2018
 
+"""
+=================
+Wind Calculations
+=================
+
+Functions related to wind vectors
+
+- spddir_to_uv
+- uv_to_spddir
+- unit_vector
+- angle_between
+    
+"""
+
 import numpy as np
 
-# --- Wind ---------------------------------------------------------------
-def wind_spddir_to_uv(wspd, wdir):
+def spddir_to_uv(wspd, wdir):
     """
-    calculated the u and v wind components from wind speed and direction
-    Input:
-        wspd: wind speed
-        wdir: wind direction
-    Output:
-        u: u wind component
-        v: v wind component
-    """
+    Calculate the u and v wind components from wind speed and direction.
 
+    Parameters
+    ----------
+    wspd, wdir : array_like
+        Arrays of wind speed and wind direction (in degrees)
+
+    Returns
+    -------
+    u and v wind components
+    """
+    if isinstance(wspd, list) or isinstance(wdir, list):
+        wspd = np.array(wspd)
+        wdir = np.array(wdir)
+    
     rad = 4.0 * np.arctan(1) / 180.
     u = -wspd * np.sin(rad * wdir)
     v = -wspd * np.cos(rad * wdir)
 
-    return u, v
+    return u.round(3), v.round(3)
 
-
-def wind_uv_to_dir(U, V):
+def uv_to_spddir(u, v):
     """
-    Calculates the wind direction from the u and v component of wind.
-    Takes into account the wind direction coordinates is different than the
-    trig unit circle coordinate. If the wind direction is 360 then returns zero
-    (by % 360)
-    Inputs:
-      U = west / east direction(wind from the west is positive, from the east is negative)
-      V = south / north direction(wind from the south is positive, from the north is negative)
+    Calculates the wind speed and direction from u and v components.
+
+    Takes into account the wind direction coordinates is different than
+    the trig unit circle coordinate. 
+    If the wind direction is 360, then return zero.
+
+    Parameters
+    ----------
+    u, v: array_like
+        u (west to east) and v (south to north) wind component.
+
+    Returns
+    -------
+    Wind speed and direction
     """
-    WDIR = (270 - np.rad2deg(np.arctan2(V, U))) % 360
-    return WDIR
+    if isinstance(u, list) or isinstance(v, list):
+        u = np.array(u)
+        v = np.array(v)
 
+    wdir = (270 - np.rad2deg(np.arctan2(v, u))) % 360
+    wspd = np.sqrt(u * u + v * v)
+    
+    return wspd.round(3), wdir.round(3)
 
-def wind_uv_to_spd(U, V):
+def unit_vector(i, j):
     """
-    Calculates the wind speed from the u and v wind components
-    Inputs:
-      U = west / east direction(wind from the west is positive, from the east is negative)
-      V = south / noth direction(wind from the south is positive, from the north is negative)
+    Return a unit vector for a 2D vector.
     """
-    try:
-        WSPD = np.sqrt(np.square(U) + np.square(V))
-    except:
-        # why didn't numpy work???
-        print('huh, numpy did not work, so do the alternative math')
-        WSPD = (U*U + V*V)**(.5)
-    return WSPD
+    magnitude = np.sqrt(i**2 + j**2)
+    unit_i = i / magnitude
+    unit_j = j / magnitude
+    
+    return unit_i, unit_j
 
-
-# Below is used for calculing the angle between two wind vectors
-def unit_vector(vector):
-    """ Returns the unit vector of the vector.  """
-    return vector / np.linalg.norm(vector)
-
-
-def angle_between(v1, v2):
+def angle_between(i1, j1, i2, j2):
     """
-    Calcualates the angle between two wind vecotrs. Utilizes the cos equation:
-                cos(theta) = (u dot v) / (magnitude(u) dot magnitude(v))
+    Calculate the angle between two 2D vectors (i.e., 2 wind vectors).
 
-    Input:
-        v1 = vector 1. A numpy array, list, or tuple with
-             u in the first index and v in the second
-        v2 = vector 2. A numpy array, list, or tuple with
-             u in the first index and v in the second
-    Output:
-    Returns the angle in radians between vectors 'v1' and 'v2': :
+    Utilizes the cos equation:
+        $cos(theta) = (v1 dot v2) / (V1 x V2)$ where V1 and V2 are the magnitude of vector1 and vecto2.
+    
+    For a two-dimensional vector where v1 = <i1, j1> and v2 = <i2, j2>:
+        
+        cos(theta) = (i1*i2 + j1*j2) / (sqrt(i1**2 + j1**2) * sqrt(i2**2 + j2**2)
 
-            >> > angle_between((1, 0, 0), (0, 1, 0))
-            1.5707963267948966
-            >> > angle_between((1, 0, 0), (1, 0, 0))
-            0.0
-            >> > angle_between((1, 0, 0), (-1, 0, 0))
-            3.141592653589793
+    Parameters
+    ----------
+    i1, j1 : array like
+        i and j components representing the first vector
+    i2, j2 : array like
+        i and j components representing the second vector
+
+    Returns
+    -------
+    The angle between vectors vector 1 and vector 2 in degrees.
+
+    Examples
+    --------
+
+    >>> angle_between(0, 10, 30, 30)
+    45.0
+
+    >>> angle_between(1, 0, 0, 1)
+    90.0
+
+    >>> angle_between((1, 0), (-1, 0))
+    180
     """
-    v1_u = unit_vector(v1)
-    v2_u = unit_vector(v2)
-    angle = np.arccos(np.dot(v1_u, v2_u))
-    if np.isnan(angle):
-        if (v1_u == v2_u).all():
-            return np.rad2deg(0.0)
-        else:
-            return np.rad2deg(np.pi)
-    return np.rad2deg(angle)
 
+    dot_product = i1 * i2 + j1 * j2
+    magnitude1 = np.sqrt(i1**2 + j1**2) 
+    magnitude2 = np.sqrt(i2**2 + j2**2) 
+    
+    theta = np.arccos(dot_product / (magnitude1 * magnitude2))
+    
+    return np.rad2deg(theta).round(3)
 
-
-#--- Example -----------------------------------------------------------------#
 if __name__ == "__main__":
-    u = np.array([1, 5, -9])
+    
+    # Examples
+    u = np.array([1, 0, -5])
     v = np.array([-1, -2, 5])
-
-    vector1 = [u[0], v[0]]
-    vector2 = [u[1], v[1]]
-    vector3 = [u[2], v[2]]
 
     print("U component: ", u)
     print("V component: ", v)
-    print("Wind Directions: ", wind_uv_to_dir(u, v))
-    print("Wind Speeds: ", wind_uv_to_spd(u, v))
+    print("Wind Speed and Direction: ", uv_to_spddir(u, v))
     print("")
-    print("Angle between vector 1 and 2: ", angle_between(vector1, vector2))
-    print("Angle between vector 2 and 3: ", angle_between(vector2, vector3))
 
-    print("")
-    print(alt_to_pres(850, 1288))
-    
+    print("Angle between vector 1 and 2: ", angle_between(u[0], v[0], u[1], v[1]))
+    print("Angle between vector 2 and 3: ", angle_between(u[1], v[1], u[2], v[2]))
+

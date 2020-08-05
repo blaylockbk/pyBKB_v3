@@ -22,9 +22,12 @@ Requires a MesoWest/SynopticLabs API token. You can get your own token here:
 from datetime import datetime
 import numpy as np
 import requests
+import pandas as pd
 
 import sys
 from .get_credentials import get_MW_token
+
+from BB_wx_calcs.wind import spddir_to_uv
 
 # Review MesoWest API documentation for the available variable names:
 #   https://synopticlabs.org/api/mesonet/variables/
@@ -120,53 +123,51 @@ def get_mesowest_ts(stationID, sDATE, eDATE,
     ## Open URL, and convert JSON to some python-readable format.
     data = load_json(URL, verbose=verbose)
 
-    if data['SUMMARY']['RESPONSE_CODE'] == 1:
-        # There are no errors in the API Request
+    assert data['SUMMARY']['RESPONSE_CODE'] == 1, f"There were errors in the API request {URL}. {data['SUMMARY']['RESPONSE_MESSAGE']}"
+    
+    ## Grab the content we are interested in
+    df = pd.DataFrame()
 
-        ## Grab the content we are interested in
-        return_this = {}
+    # Station metadata
+    stn = data['STATION'][0]
+    df.attrs['URL'] = URL
+    df.attrs['NAME'] = str(stn['NAME'])
+    df.attrs['STID'] = str(stn['STID'])
+    df.attrs['LAT'] = float(stn['LATITUDE'])
+    df.attrs['LON'] = float(stn['LONGITUDE'])
+    df.attrs['ELEVATION'] = float(stn['ELEVATION'])
+                               # Note: Elevation is in feet, NOT METERS!
 
-        # Station metadata
-        stn = data['STATION'][0]
-        return_this['URL'] = URL
-        return_this['NAME'] = str(stn['NAME'])
-        return_this['STID'] = str(stn['STID'])
-        return_this['LAT'] = float(stn['LATITUDE'])
-        return_this['LON'] = float(stn['LONGITUDE'])
-        return_this['ELEVATION'] = float(stn['ELEVATION'])
-                                   # Note: Elevation is in feet, NOT METERS!
-
-        # Dynamically create keys in the dictionary for each requested variable
-        for v in stn['SENSOR_VARIABLES']:
-            if verbose: print('v is: %s' % v)
-            if v == 'date_time':
-                # Convert date strings to a datetime object
-                dates = data["STATION"][0]["OBSERVATIONS"]["date_time"]
-                if tz == 'UTC':
-                    DATES = [datetime.strptime(i, '%Y-%m-%dT%H:%M:%SZ') for i in dates]
-                else:
-                    DATES = [datetime.strptime(i[:-5], '%Y-%m-%dT%H:%M:%S') for i in dates]
-                    return_this['UTC-offset'] = [i[-5:] for i in dates]
-                return_this['DATETIME'] = DATES
+    # Dynamically create keys in the dictionary for each requested variable
+    for v in stn['SENSOR_VARIABLES']:
+        if verbose: print('v is: %s' % v)
+        if v == 'date_time':
+            # Convert date strings to a datetime object
+            dates = data["STATION"][0]["OBSERVATIONS"]["date_time"]
+            if tz == 'UTC':
+                DATES = [datetime.strptime(i, '%Y-%m-%dT%H:%M:%SZ') for i in dates]
             else:
-                # Each variable may have more than one "set", like if a station 
-                # has more than one sensor. Deafult, set_num=0, will grab the
-                # first (either _set_1 or _set_1d).
-                key_name = str(v)
-                grab_this_set = np.sort(list(stn['SENSOR_VARIABLES'][key_name]))[set_num]
-                if verbose:
-                    print('    Used %s' % grab_this_set)
-                variable_data = stn['OBSERVATIONS'][grab_this_set]
-                return_this[key_name] = np.array(variable_data, dtype=np.float)
-        
-        return return_this
+                DATES = [datetime.strptime(i[:-5], '%Y-%m-%dT%H:%M:%S') for i in dates]
+                df.attrs['UTC-offset'] = [i[-5:] for i in dates]
+            df['DATETIME'] = DATES
+        else:
+            # Each variable may have more than one "set", like if a station 
+            # has more than one sensor. Deafult, set_num=0, will grab the
+            # first (either _set_1 or _set_1d).
+            key_name = str(v)
+            grab_this_set = np.sort(list(stn['SENSOR_VARIABLES'][key_name]))[set_num]
+            if verbose:
+                print('    Used %s' % grab_this_set)
+            variable_data = stn['OBSERVATIONS'][grab_this_set]
+            df[key_name] = np.array(variable_data, dtype=np.float)
 
-    else:
-        # There were errors in the API request
-        if verbose:
-            print('  !! Errors: %s' % URL)
-            print('  !! Reason: %s\n' % data['SUMMARY']['RESPONSE_MESSAGE'])
-        return 'ERROR'
+    if all(['wind_speed' in df, 'wind_direction' in df]):
+        # Break wind into U and V components
+        u, v = spddir_to_uv(df['wind_speed'], df['wind_direction'])
+        df['wind_u'] = u
+        df['wind_v'] = v
+            
+    return df.set_index('DATETIME')
 
 
 def get_mesowest_radius(DATE, location,
@@ -339,27 +340,26 @@ def get_mesowest_stninfo(STIDs, extra='', verbose=True):
     ## Open URL, and convert JSON to some python-readable format.
     data = load_json(URL, verbose=verbose)
 
-    if data['SUMMARY']['RESPONSE_CODE'] == 1:
-        ## Store the relevant information in a location dictionary.
-        location_dict = {}
+    assert data['SUMMARY']['RESPONSE_CODE'] == 1, f"There were errors in the API request {URL}. {data['SUMMARY']['RESPONSE_MESSAGE']}"
+    
+    ## Store the relevant information in a location dictionary.
+    location_dict = {}
 
-        for stn in data['STATION']:
-            location_dict[stn['STID']] = {'latitude':float(stn['LATITUDE']),
-                                        'longitude':float(stn['LONGITUDE']),
-                                        'NAME':stn['NAME'],
-                                        'ELEVATION':int(stn['ELEVATION']),
-                                        'TIMEZONE': stn['TIMEZONE'],
-                                        'STATUS': stn['STATUS'],
-                                        'PERIOD_OF_RECORD': (datetime.strptime(stn['PERIOD_OF_RECORD']['start'], '%Y-%m-%dT%H:%M:%SZ'),
-                                                             datetime.strptime(stn['PERIOD_OF_RECORD']['end'], '%Y-%m-%dT%H:%M:%SZ'))
-                                        }
-        return location_dict
-    else:
-        # There were errors in the API request
-        if verbose:
-            print('  !! Errors: %s' % URL)
-            print('  !! Reason: %s\n' % data['SUMMARY']['RESPONSE_MESSAGE'])
-        return 'ERROR'
+    for stn in data['STATION']:
+        location_dict[stn['STID']] = {'latitude':float(stn['LATITUDE']),
+                                    'longitude':float(stn['LONGITUDE']),
+                                    'NAME':stn['NAME'],
+                                    'ELEVATION':int(stn['ELEVATION']),
+                                    'TIMEZONE': stn['TIMEZONE'],
+                                    'STATUS': stn['STATUS'],
+                                    'PERIOD_OF_RECORD': (datetime.strptime(stn['PERIOD_OF_RECORD']['start'], '%Y-%m-%dT%H:%M:%SZ'),
+                                                         datetime.strptime(stn['PERIOD_OF_RECORD']['end'], '%Y-%m-%dT%H:%M:%SZ'))
+                                    }
+        
+    df = pd.DataFrame(location_dict)
+    df.attrs['URL'] = URL
+    return df
+    
 
 
 def get_mesowest_percentiles(stn, variable='air_temp',
