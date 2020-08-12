@@ -1,33 +1,383 @@
 # Brian Blaylock
-# Version 3.0 update
 # June 21, 2018
 
 """
+============
+get_MesoWest
+============
+
 Quickly get data from the MesoWest/SynopticLabs API.
-    https://synopticlabs.org/api/mesonet/
+    
+    https://developers.synopticdata.com/
 
 Requires a MesoWest/SynopticLabs API token. You can get your own token here:
+    
     https://synopticlabs.org/api/guides/?getstarted
-
-    load_json                - Basic function to load json 
-    get_network_ids          - Return ID numbers for list of network shortnames.
-    get_mesowest_ts          - Get a time series of data for a single station. 
-    get_mesowest_radius      - Get lists of data from stations within a radius.
-    get_mesowest_stninfo     - Get a dictionary of each station's metadata
-    get_mesowest_percentiles - Get a series of observed percentiles for a
-                               station OR get an Empirical Cumulative
-                               Distribution for a series of hours.
+    
 """
 
+import sys
 from datetime import datetime
 import numpy as np
 import requests
+import urllib
 import pandas as pd
 
-import sys
 from .get_credentials import get_MW_token
 
 from BB_wx_calcs.wind import spddir_to_uv
+
+# API Token
+# Get your own token here: https://developers.synopticdata.com/
+_token = get_MW_token()
+
+# API Services
+# https://developers.synopticdata.com/mesonet/v2/
+_service = {'auth', 'networks', 'networktypes', 'variables', 'qctypes'}
+_stations = {'metadata', 'timeseries', 'precipitation', 'nearesttime', 'latest'}
+_service.update(_stations)
+
+# API Services
+# https://developers.synopticdata.com/mesonet/v2/
+_service = {'auth', 'networks', 'networktypes', 'variables', 'qctypes'}
+_stations = {'metadata', 'timeseries', 'precipitation', 'nearesttime', 'latest'}
+_service.update(_stations)
+
+def synoptic_api(service, verbose=True, **params):
+    '''
+    Request data from the Synoptic API
+    
+    API References
+    --------------
+    - https://developers.synopticdata.com/mesonet/v2/
+    - https://developers.synopticdata.com/mesonet/explorer/
+    
+    Parameters
+    ----------
+    service : str
+        API service to use, including {'auth', 'latest', 'metadata',
+        'nearesttime', 'networks', 'networktypes', 'precipitation',
+        'qctypes', 'timeseries', 'variables'}
+    params : keyword arguments
+        API request parameters (arguments).
+        May supply a list (i.e., stations) which will be converted to 
+        the required comma separated list.
+        Dates (i.e., start, end, obrange) may be given as a datetime
+        or pandas.datetime (will be parsed by f-string to YYYYmmddHHMM).
+    
+    Returns
+    -------
+    A ``requests.models.Response`` object from ``requests.get(URL, params)``
+    
+    Examples
+    --------
+    To read the json data for metadata for a station
+    
+    >>> synoptic_api('metadata', stid='WBB').json()
+    
+    >>> synoptic_api('metadata', stid=['WBB', 'KSLC']).json()
+    
+    '''   
+    help_url = 'https://developers.synopticdata.com/mesonet/v2/'
+    assert service in _service, f"`service` must be one of {_service}. {help_url}"
+    
+    ## Service URL
+    ##------------
+    root = 'https://api.synopticdata.com/v2/'
+    
+    if service in _stations:    
+        URL = f"{root}/stations/{service}"
+    else:
+        URL = f"{root}/{service}"
+        
+    ## Set API token
+    ##--------------
+    ## Default is set at top of this file, but may overwrite with keyword argument.
+    params.setdefault('token', _token)
+    
+    ## Parse parameters
+    ##-----------------
+    # Change some keword parameters to the appropriate request format
+    
+    ## 1) Force all param keys to be lower case
+    params = {k.lower(): v for k, v in params.items()}
+    
+    ## 1) Join lists to comma separtated strings.
+    ##    For example, stid=['KSLC', 'KMRY'] --> stid='KSLC,KRMY').
+    for key, value in params.items():           
+        if isinstance(value, list) and key not in ['obrange']:
+            params[key] = ','.join(value)
+        
+    ## 2) Datetimes should be string: 'YYYYmmddHHMM' or 'YYYYmmdd'
+    if 'start' in params and not isinstance(params['start'], str):
+        params['start'] = f"{params['start']:%Y%m%d%H%M}"
+    if 'end' in params and not isinstance(params['end'], str):
+        params['end'] = f"{params['end']:%Y%m%d%H%M}"
+    if 'obrange' in params and not isinstance(params['obrange'], str): 
+        # obrange should be a date or list of two dates.
+        if not hasattr(params['obrange'], '__len__'):
+            params['obrange'] = [params['obrange']]
+        params['obrange'] = ','.join([f'{i:%Y%m%d}' for i in params['obrange']])    
+    
+    
+    ##################
+    # Make the request
+    ##################
+    f = requests.get(URL, params)
+    
+    # Check Data
+    code = f.json()['SUMMARY']['RESPONSE_CODE']
+    msg = f.json()['SUMMARY']['RESPONSE_MESSAGE']
+    decode_url = urllib.parse.unquote(f.url)
+    
+    assert code == 1, f"🛑 There are errors in the API request {decode_url}. {msg}"
+    
+    if verbose:
+        print(f'\n 🚚💨 Speedy Delivery from Synoptic API [{service}]: {decode_url}\n')
+    
+    return f
+
+def stations_metadata(verbose=True, **params):
+    """
+    Get station metadata for stations as a Pandas DataFrame.
+
+    https://developers.synopticdata.com/mesonet/v2/stations/metadata/
+
+    Parameters
+    ----------
+    params : keyword arguments
+        Synoptic API arguments used to specify the data request.
+        
+    Some useful arguments include:
+    
+    stid : str or list
+        Station id or list of station ids
+        ``['KSLC', 'UKBKB', 'KMRY']`` *or* ``'KSLC'``
+    obrange : datetime or 2-item list of datetime
+         Observation time range station must be active, as list of 
+         datetimes.
+    radius : str
+        ``"lat,lon,miles"`` *or* ``"stid,miles"``
+    state : str or list
+        string or list of abbreviated state strings, i.e. ['UT','CA']
+    vars : str or list
+        Filter list of stations for those that report the listed variables.
+        i.e., ``['air_temp', 'wind_speed', 'wind_direction', etc.]``
+    varsoperator : {'and', 'or'}
+    network - int
+        Network integer number. (see network API service)
+    """
+    assert len(params) > 0, "🤔 Please assign a parameter (i.e., stid, radius, etc.)"
+
+    # Get the data
+    web = synoptic_api('metadata', verbose=verbose, **params)
+    data = web.json()
+        
+    # Initialize a DataFrame
+    df = pd.DataFrame(data['STATION'], index=[i['STID'] for i in data['STATION']])
+    
+    # Convert data to numeric values (if possible)
+    df = df.apply(pd.to_numeric, errors='ignore')
+
+    # Deal with "Period Of Record" dictionary
+    df = pd.concat([df, df.PERIOD_OF_RECORD.apply(pd.Series)], axis=1)
+    df[['start', 'end']] = df[['start', 'end']].apply(pd.to_datetime)
+
+    # Rename some fields.
+    # latitude and longitude are made lowercase to conform to CF standard
+    df.drop(columns=['PERIOD_OF_RECORD'], inplace=True)
+    df.rename(columns=dict(LATITUDE='latitude', LONGITUDE='longitude',
+                           start='RECORD_START', end='RECORD_END'),
+              inplace=True)
+    
+    df.attrs['URL'] = urllib.parse.unquote(web.url)
+    df.attrs['elevation units'] = 'ft'
+    df.attrs['SUMMARY'] = data['SUMMARY']
+    return df.transpose().sort_index()
+
+def stations_timeseries(verbose=True, **params):
+    """
+    Get station data for time series.
+
+    https://developers.synopticdata.com/mesonet/v2/stations/timeseries/
+
+    Parameters
+    ----------
+    params : keyword arguments
+        Synoptic API arguments used to specify the data request.
+        Must include 'start' and 'end' argument *or* 'recent'
+    
+    Some useful arguments include:
+    
+    start : datetime
+        Start of the time series
+    end : datetime
+        End of the time series
+    recent : int
+        Instead of a start and end time, you can request values for 
+        most recent X minutes.
+    stid : str or list
+        Station id or list of station ids
+        ``['KSLC', 'UKBKB', 'KMRY']`` *or* ``'KSLC'``
+    radius : str
+        ``"lat,lon,miles"`` *or* ``"stid,miles"``
+    state : str or list
+        string or list of abbreviated state strings, i.e. ['UT','CA']
+    vars : str or list
+        Filter list of stations for those that report the listed variables.
+        i.e., ``['air_temp', 'wind_speed', 'wind_direction', etc.]``
+    varsoperator : {'and', 'or'}
+    network - int
+        Network integer number. (see network API service)
+    units : {'metric', 'english'}
+    obtimezone : {'UTC', 'local'}
+    status : {'active', 'inactive'}
+    
+    Examples
+    --------
+    >>> stations_timeseries(stid='WBB', recent=100)
+    >>> stations_timeseries(radius='UKBKB,10', vars='air_temp', recent=100)
+    """
+    assert len(params) > 0, "🤔 Please assign a parameter (i.e., stid, radius, etc.)"
+
+    # Get the data
+    web = synoptic_api('timeseries', verbose=verbose, **params)
+    data = web.json()
+    
+    # Build a separate pandas.DataFrame for each station.
+    Z = []
+    for stn in data['STATION']:
+        obs = stn.pop('OBSERVATIONS')
+        senvars = stn.pop('SENSOR_VARIABLES')
+        
+        df = pd.DataFrame(obs).set_index('date_time')
+        df.index = pd.to_datetime(df.index)
+        
+        # Break wind into U and V components, if speed and direction are available
+        if all(['wind_speed' in senvars, 'wind_direction' in senvars]):
+            for i_spd, i_dir in zip(senvars['wind_speed'].keys(),
+                                    senvars['wind_direction'].keys()):
+                u, v = spddir_to_uv(obs[i_spd], obs[i_dir])
+                this_set = '_'.join(i_spd.split('_')[-2:])
+                df[f'wind_u_{this_set}'] = u
+                df[f'wind_v_{this_set}'] = v
+        
+        # Remove 'set_1d' and 'set_1d' from column names.
+        # Sets 2+ will retain the full name. The user should refer to
+        # the SENSOR_VARIABLES to see which are derived variables.
+        col_names = {i: i.replace('_set_1d', '').replace('_set_1', '') for i in df.columns}
+        df.rename(columns=col_names, inplace=True)
+              
+        # Remaining data in dict will be returned as attribute
+        df.attrs = stn
+        
+        # Convert some strings to flaot/int
+        for k, v in df.attrs.items():
+            if isinstance(v, str):
+                try:
+                    n = float(v)
+                    if n.is_integer():
+                        df.attrs[k] = int(n)
+                    else:
+                        df.attrs[k] = n
+                except:
+                    pass
+        
+        # Rename lat/lon to lowercase to match CF convenctions
+        df.attrs['latitude'] = df.attrs.pop('LATITUDE')
+        df.attrs['longitude'] = df.attrs.pop('LONGITUDE')
+        
+        # Include other info
+        df.attrs['UNITS'] = data['UNITS']
+        df.attrs['QC_SUMMARY'] = data['QC_SUMMARY']
+        df.attrs['SUMMARY'] = data['SUMMARY']
+        df.attrs['SENSOR_VARIABLES'] = senvars
+        
+        Z.append(df)
+        
+    if len(Z) == 1:
+        return Z[0]
+    else:
+        if verbose: print(f'Returned [{len(Z)}] stations. {[i.attrs["STID"] for i in Z]}')
+        return Z
+    
+def networks(verbose=True, **params):
+    """
+    Return a DataFrame of available Networks and their metadata
+    
+    https://developers.synopticdata.com/mesonet/v2/networks/
+    
+    Parameters
+    ----------
+    **param : keyword arguments
+       
+    Some include the following
+    
+    id : int or list of int
+        Filter by network number.
+    shortname : str or list of str
+        Netork shortname, i.e. 'NWS/FAA', 'RAWS', 'UTAH DOT',         
+    """
+    # Get the data
+    web = synoptic_api('networks', verbose=verbose, **params)
+    data = web.json()
+    
+    df = pd.DataFrame(data['MNET'])
+    df.set_index('ID', inplace=True)
+    df['LAST_OBSERVATION'] = pd.to_datetime(df.LAST_OBSERVATION)
+    df.attrs['SUMMARY'] = data['SUMMARY']
+    
+    return df
+
+def networktypes(verbose=True, **params):
+    # Get the data
+    web = synoptic_api('networktypes', verbose=verbose, **params)
+    data = web.json()
+    
+    df = pd.DataFrame(data['MNETCAT'])
+    df.set_index('ID', inplace=True)
+    df.attrs['SUMMARY'] = data['SUMMARY']
+    
+    return df
+
+def variables(verbose=True, **params):
+    """
+    Return a DataFrame of available station variables
+    
+    https://developers.synopticdata.com/mesonet/v2/variables/
+    https://developers.synopticdata.com/mesonet/v2/api-variables/
+    
+    Parameters
+    ----------
+    **param : keyword arguments
+       
+    Some include the following
+    """
+    # Get the data
+    web = synoptic_api('variables', verbose=verbose, **params)
+    data = web.json()
+    
+    df = pd.concat([pd.DataFrame(i) for i in data['VARIABLES']], axis=1).transpose()
+    #df.set_index('vid', inplace=True)
+    df.attrs['SUMMARY'] = data['SUMMARY']
+    
+    return df
+
+# Other Services
+#---------------
+# stations_precipitation :
+# stations_nearesttime : 
+# stations_latency :
+# stations_latest : 
+# stations_qcsegments :
+# qctypes : https://developers.synopticdata.com/mesonet/v2/qctypes/
+
+
+
+#=======================================================================
+#              | 
+######### OLD \/
+#########_---------------------------------
 
 # Review MesoWest API documentation for the available variable names:
 #   https://synopticlabs.org/api/mesonet/variables/
@@ -40,15 +390,44 @@ default_vars = 'altimeter,' \
              + 'air_temp,' \
              + 'relative_humidity,' \
              + 'dew_point_temperature'
-
-
-def load_json(URL, verbose=True):
+def load_json(URL, params={}, verbose=True):
     '''Return json data as a dictionary from a URL'''
-    if verbose:
-        print('\nRetrieving from MesoWest API: %s\n' % URL)
+        
+    # Get my MesoWest API Token: INSERT YOUR TOKEN HERE
+    params['token'] = get_MW_token()
     
-    f = requests.get(URL)
-    return f.json()
+    # Change the keword parameters to the appropriate request format...
+    
+    ## 1) Join lists to comma separtated strings.
+    ##    For example, stid=['KSLC', 'KMRY'] --> stid='KSLC,KRMY').
+    for key, value in params.items():           
+        if isinstance(value, list) and key not in ['obrange']:
+            params[key] = ','.join(value)
+        
+    ## 2) Datetimes should be string: 'YYYYmmddHHMM'
+    if 'start' in params:
+        params['start'] = f'{params['start']:%Y%m%d%H%M}'
+    if 'end' in params:
+        params['end'] = f'{params['end']:%Y%m%d%H%M}'
+    if 'obrange' in params: 
+        # obrange should be a date or list of two dates.
+        if not hasattr(params['obrange'], '__len__'):
+            params['obrange'] = [params['obrange']]
+        if not isinstance(params['obrange'][0], str):
+            print(params['obrange'])
+            params['obrange'] = ','.join([f'{i:%Y%m%d%H%M}' for i in params['obrange']])    
+    
+    
+    ####################################################################
+    # Make the request and return the JSON data
+    ####################################################################
+    f = requests.get(URL, params)
+    
+    decoded_url = urllib.parse.unquote(f.url)
+    if verbose:
+        print('\n🚚 Retrieved data from MesoWest API: %s\n' % decoded_url)
+    
+    return decoded_url, f.json()
 
 def get_network_ids(network_names='nws/faa,raws', verbose=True):
     """
@@ -74,7 +453,6 @@ def get_network_ids(network_names='nws/faa,raws', verbose=True):
             print('  !! Reason: %s\n' % data['SUMMARY']['RESPONSE_MESSAGE'])
         return 'ERROR'
     
-
 def get_mesowest_ts(stationID, sDATE, eDATE,
                     variables=default_vars, tz='UTC', set_num=0, verbose=True):
     """
@@ -168,7 +546,6 @@ def get_mesowest_ts(stationID, sDATE, eDATE,
         df['wind_v'] = v
             
     return df.set_index('DATETIME')
-
 
 def get_mesowest_radius(DATE, location,
                         radius=30, within=30,
@@ -310,19 +687,17 @@ def get_mesowest_radius(DATE, location,
             print('  !! Reason: %s\n' % data['SUMMARY']['RESPONSE_MESSAGE'])
         return 'ERROR'
 
-
-def get_mesowest_stninfo(STIDs, extra='', verbose=True):
+def get_mesowest_stninfo(verbose=True, **params):
     """
-    Creates a Location Dictionary, where each key is a unique station id that 
-    contains a dictionary including latitude, longitude, elevation, and other
-    metadata.
+    Get metadata for a station as a Pandas DataFrame.
 
-    Input:
-        STIDs    - A list of station IDs or a string of stations separated by
-                   a comma.
-        extra    - Any extra API arguments you want to attach to the URL.
-        verbose  - True: Print some diagnostics
-                   False: Don't print anything
+    Parameters
+    ----------
+    STIDs    - A list of station IDs or a string of stations separated by
+               a comma.
+    extra    - Any extra API arguments you want to attach to the URL.
+    verbose  - True: Print some diagnostics
+               False: Don't print anything
     
     Returns a dictionary of dictionaries containing metadata for each station.
     """
@@ -360,8 +735,6 @@ def get_mesowest_stninfo(STIDs, extra='', verbose=True):
     df.attrs['URL'] = URL
     return df
     
-
-
 def get_mesowest_percentiles(stn, variable='air_temp',
                              percentiles=[0,5,25,50,75,95,100],
                              sDATE = datetime(2016, 1, 1, 0),
@@ -453,7 +826,6 @@ def get_mesowest_percentiles(stn, variable='air_temp',
             print('  !! Errors: %s' % URL)
             print('  !! Reason: %s\n' % data['SUMMARY']['RESPONSE_MESSAGE'])
         return 'ERROR'
-
 
 def get_mesowest_network(network='1,2'):
     """Get list of station locations by network"""

@@ -29,10 +29,10 @@ def spddir_to_uv(wspd, wdir):
     Returns
     -------
     u and v wind components
-    """
+    """    
     if isinstance(wspd, list) or isinstance(wdir, list):
-        wspd = np.array(wspd)
-        wdir = np.array(wdir)
+        wspd = np.array(wspd, dtype=float)
+        wdir = np.array(wdir, dtype=float)
     
     rad = 4.0 * np.arctan(1) / 180.
     u = -wspd * np.sin(rad * wdir)
