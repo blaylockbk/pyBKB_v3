@@ -15,8 +15,15 @@ This function is not uploaded to github by the .gitignore file
 """
 
 def get_MW_token():
-    '''Return Brian Blaylock's MesoWest API token'''
-    return '2562b729557f45f5958516081f06c9eb'
+    '''
+    Return Brian Blaylock's MesoWest API token
+    
+    https://developers.synopticdata.com/settings/
+    https://developers.synopticdata.com/about/tokens/
+    
+    '''
+    return dict(token='2562b729557f45f5958516081f06c9eb',
+                key='e599f8236cf64277961b50fb329ef11a')
 
 
 def get_ESRL_credentials():
