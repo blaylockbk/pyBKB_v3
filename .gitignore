@@ -18,6 +18,8 @@ data/
 
 !states_latlon.csv
 
+sandbox.ipynb
+
 .rclone.conf
 
 BB_HRRR/figs/
