@@ -8,15 +8,14 @@ These scripts help me be a successful meteorologist and were primarily used thro
 
 # Anaconda Environment
 > Please read the documents for managing environments.  
-> Reference: https://github.com/Unidata/unidata-users-workshop  
 > Reference: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
+> Reference: https://github.com/Unidata/unidata-users-workshop  
 
-
-I installed the Anaconda python distribution and created a new environment using the `environment.yml` file provided in this directory. The name of the environment is pyBKB_v3
+I installed the Anaconda python distribution and created a new environment using the `environment.yml` file provided in this directory. The name of the environment is **pyBKB_v3** named after my initials and v3 indicates that these were written for Python 3 (as opposed to pyBKB_v2 which are older scripts written when I used Python 2).
 
     conda env create -f ./environment.yml
 
-> NOTE: `pygrib` is not available on Windows, so that line should be commented out if installing on Windows.
+> NOTE: `pygrib` was recently made available on Windows.
 
 On a windows computer, to activate the `pyBKB_v3` environment, do this in the Windows Command Prompt:
 
@@ -53,7 +52,7 @@ List all the available environments
     conda info --envs
 
 ---
-## How to using these modules
+## How to use these modules
 `pyBKB_v3` is kept in `$HOME/pyBKB_v3`. One way to use these modules into your scripts is to append the sys path in your script.
 
 ```python
@@ -72,14 +71,16 @@ Instead, you can update the `PYTHONPATH` variable in your environment to automat
 export PYTHONPATH=$HOME/pyBKB_v3:$PYTHONPATH
 ```
 
-After that variable is applied, when you open python and print out the value of `sys.path`, you will see that the pyBKB_v3 directory is included. This means that a simple ```module load BB_mesowest``` in your python script will load the module. **This is an important change to know if you are not Brian and you are using these my modules, as some of my scripts assume the PYTHONPATH as been set while others will explicily append the sys.path.**
+After that variable is applied, when you open python and print out the value of `sys.path`, you will see that the pyBKB_v3 directory is included. This means that a simple ```module load BB_mesowest``` in your python script will load the module. **This is an important change to know if you are not Brian and you are using these modules, as some of my scripts assume the PYTHONPATH as been set while others will explicily append the sys.path.**
 
 ---
 
-## Tunnel Jupyter Lab through Putty
-When running Jupyter Lab on a remote computer, you can tunnel Jupyter to your local browser window.
+I primarily use Jupyter Lab and VS Code to write and run code. Here are some tips for running Jupyter Lab and VS Code on a remote server...
 
-To configure Putty for an ssh Tunnel...
+## Tunnel Jupyter Lab through Putty
+Jupyter Lab is included in my `environment.yml` file. When running Jupyter Lab on a remote computer, you can tunnel Jupyter to your local browser window.
+
+To configure Putty for an SSH Tunnel...
 
 1. In the left, click `Connection` > `SSH` > `Tunnels`
 2. In the source port, replace #### with a port number you chose between 7000 and 8000.
@@ -103,18 +104,18 @@ I added an alias to my ~/.bashrc file on my remote machine as a short cut
 
     alias jupy='cd / && jupyter lab --no-browser -port=7686
 
-Note that I first change to the root direcotry, `cd /`, so I have access to the full system rather than just being confined to the directory from with I open Jupyter.
+Note that I first change to the root direcotry, `cd /`, so I have access to the full system rather than just being confined to the directory I open Jupyter.
 
 ## VSCode on a remote server with `code-server`
 Jupyter Lab is great for notebooks, but often I need a more powerful and mature code editor. That is when I turn to VS Code. Sometimes it's difficult to install VS Code on a remote server, but you can run `code-server` and through an SSH tunnel in Putty. This lets you run a version of VS Code on the remote server and view in your local browser (similar to tunneling Jupyter, as shown above).
 
-https://github.com/cdr/code-server
+> # 👉🏻 https://github.com/cdr/code-server
 
 #### Set up SSH Tunnel
 Set up an SSH Tunnel following the instructions above. Remember the port number...you will need that later.
 
 #### Install code-server via conda
-On the remote server, install code-server via conda: https://anaconda.org/conda-forge/code-server. I put this in it's own environment for now. Then, activate the new environment.
+On the remote server, install code-server via conda (the easiest way): https://anaconda.org/conda-forge/code-server. I put this in it's own environment for now. Then, activate the new environment.
     
     conda create -n vscode -c conda-forge code-server
     conda activate vscode
@@ -135,8 +136,8 @@ In that config file change **auth: password* with **auth: none**.  Also, change 
     cert: false
 
 #### Start code-server and open
-Restart code-server on the remote server and open in your local browser.
+Restart code-server on the remote server and open in your local browser. In a browser like Chrome, navigate to the following URL:
 
     http://127.0.0.1:7684    <-- change the last 4 numbers to your port number
 
-And there you go...you have an instance of VS Code running.
+And there you go...you have an instance of VS Code running. In Chrome, you can install pages as an "app" and that is what I did with my instance of code-server and Jupyter Lab and pinned them to the task bar for quick acess.
