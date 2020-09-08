@@ -5,6 +5,11 @@ __[Website](http://home.chpc.utah.edu/~u0553130/Brian_Blaylock/home.html)__
 # pyBKB_v3
 These scripts help me be a successful meteorologist and were primarily used throughout my Ph.D. research at the University of Utah 2017-2019. 
 
+> _Learn Python: _
+> There are a lot of resources online to learn Python. 
+> - ATMOS 5020 I helped taught: https://github.com/johnhorel/ATMOS_5020_2019
+> - This course by Microsoft and NASA cover several basics and can get you started: https://docs.microsoft.com/en-us/learn/paths/introduction-python-space-exploration-nasa/
+
 
 # Anaconda Environment
 > Please read the documents for managing environments.  
