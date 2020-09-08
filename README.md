@@ -104,3 +104,39 @@ I added an alias to my ~/.bashrc file on my remote machine as a short cut
     alias jupy='cd / && jupyter lab --no-browser -port=7686
 
 Note that I first change to the root direcotry, `cd /`, so I have access to the full system rather than just being confined to the directory from with I open Jupyter.
+
+## VSCode on a remote server with `code-server`
+Jupyter Lab is great for notebooks, but often I need a more powerful and mature code editor. That is when I turn to VS Code. Sometimes it's difficult to install VS Code on a remote server, but you can run `code-server` and through an SSH tunnel in Putty. This lets you run a version of VS Code on the remote server and view in your local browser (similar to tunneling Jupyter, as shown above).
+
+https://github.com/cdr/code-server
+
+#### Set up SSH Tunnel
+Set up an SSH Tunnel following the instructions above. Remember the port number...you will need that later.
+
+#### Install code-server via conda
+On the remote server, install code-server via conda: https://anaconda.org/conda-forge/code-server. I put this in it's own environment for now. Then, activate the new environment.
+    
+    conda create -n vscode -c conda-forge code-server
+    conda activate vscode
+
+#### Configure code-server
+Start code-server for the first time in the command line. Type the following in the terminal...
+    
+    code-server
+
+This first time running code-server creates a default config file. The screen output tells you where that config file is located. `Wrote default config file to ~/.config/code-server/config.yaml`. You will need to edit that file. 
+
+In that config file change **auth: password* with **auth: none**.  Also, change the port in the bind-addr to a port number you set up in the putty ssh tunnel. **bind-addr: 127.0.0.1:####** For example, my config file looks like this, which forwards through port 7684
+    
+    ~/.config/code-server/config.yaml
+    bind-addr: 127.0.0.1:7684
+    auth: none
+    password: SomePasswordHereThatIsNotUsed
+    cert: false
+
+#### Start code-server and open
+Restart code-server on the remote server and open in your local browser.
+
+    http://127.0.0.1:7684    <-- change the last 4 numbers to your port number
+
+And there you go...you have an instance of VS Code running.
