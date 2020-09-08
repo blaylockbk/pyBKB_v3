@@ -1,10 +1,16 @@
 ## Brian Blaylock
 ## August 13, 2020   COVID-19 Era
 
+########################################################################
+##               This project was moved to 
+##        https://github.com/blaylockbk/Synoptic_API
+########################################################################
+
 """
 ============
 Synotpic API
 ============
+
 
 Get mesonet data from the Synoptic API and return as Pandas.DataFrame.
 
@@ -509,9 +515,9 @@ def stations_timeseries(verbose=True, rename_set_1=True, **params):
         
         
         # In the DataFrame attributes, Convert some strings to flaot/int
-        # (i.e., ELEVATION, latitude, longitude)
+        # (i.e., ELEVATION, latitude, longitude) BUT NOT STID!
         for k, v in df.attrs.items():
-            if isinstance(v, str):
+            if isinstance(v, str) and k not in ['STID']:
                 try:
                     n = float(v)
                     if n.is_integer():
