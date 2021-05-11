@@ -119,7 +119,7 @@ print('Scan Duration : %.2f minutes' % ((scan_end-scan_start).seconds/60))
 # The GREEN "veggie" channel on GOES-16 does not measure visible green light. Instead, it measures a near-infrared band sensitive to chlorophyll. We could use that channel in place of green, but it would make the green in our image appear too vibrant. Instead, we will _tone-down_ the green channel by interpolating the value to simulate a _natural green_ color.
 # 
 # \begin{equation}
-# TrueGreen = (0.48358168*RED) + (0.45706946*BLUE) + (0.06038137*GREEN)
+# pseudoGreen = (0.48358168*RED) + (0.45706946*BLUE) + (0.06038137*GREEN)
 # \end{equation}
 # 
 # The multiband formatted file we loaded is convenient becuase all the GOES channels are in the same NetCDF file. Next, we will assign our variables R, G, and B as the data for each channel.

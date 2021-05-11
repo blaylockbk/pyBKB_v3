@@ -96,12 +96,12 @@ def normalize(value, lower_limit, upper_limit, clip=True):
     return norm
 
 
-def TrueColor(C, trueGreen=True):
+def TrueColor(C, pseudoGreen=True):
     """
     True Color RGB: 
     http://cimss.ssec.wisc.edu/goes/OCLOFactSheetPDFs/ABIQuickGuide_CIMSSRGB_v2.pdf
 
-    trueGreen - True: returns the calculated "True" green color
+    pseudoGreen - True: returns the calculated "True" green color
                 False: returns the "veggie" channel
     """
     # Load the three channels into appropriate R, G, and B variables
@@ -118,7 +118,7 @@ def TrueColor(C, trueGreen=True):
     G = np.power(G, 1/gamma)
     B = np.power(B, 1/gamma)
 
-    if trueGreen:
+    if pseudoGreen:
         # Calculate the "True" Green
         G = 0.45 * R + 0.1 * G + 0.45 * B
         G = np.maximum(G, 0)
