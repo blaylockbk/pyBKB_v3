@@ -4,9 +4,17 @@ __[Website](http://home.chpc.utah.edu/~u0553130/Brian_Blaylock/home.html)__
 
 
 # pyBKB_v3
-These scripts help me be a successful meteorologist and were primarily used throughout my Ph.D. research at the University of Utah 2017-2019. 
+These scripts were written and used throughout my Ph.D. research at the University of Utah 2017-2019.
 
-> _Learn Python: _
+The most useful functions have been moved and enhanced into more coherent Python packages.
+- [Herbie](https://github.com/blaylockbk/Herbie): Download HRRR, RAP, GFS, RRFS, etc. files from cloud archives to your local computer.
+- [GOES-2-go](https://github.com/blaylockbk/goes2go): Download GOES-16 and GOES-17 ABI and GLM products from AWS to your local computer.
+- [SynopticPy](https://github.com/blaylockbk/SynopticPy): Retrieve mesonet data from Synoptic API (MesoWest).
+- [Carpenter_Workshop](https://github.com/blaylockbk/Carpenter_Workshop): Miscellaneous tools that are useful to me (making Cartopy maps, color maps, unit conversions, etc).
+
+---
+
+> _Learn Python_:  
 > There are a lot of resources online to learn Python. 
 > - ATMOS 5020 I helped taught: https://github.com/johnhorel/ATMOS_5020_2019
 > - This course by Microsoft and NASA cover several basics and can get you started: https://docs.microsoft.com/en-us/learn/paths/introduction-python-space-exploration-nasa/
