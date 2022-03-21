@@ -1,9 +1,9 @@
 Brian Blaylock  
 October 10, 2018
 
-# How to use `rclone` to access GOES16 and NEXRAD on Amazon AWS
+# How to use `rclone` to access GOES16, HRRR, and NEXRAD on Amazon AWS
 
-As part of NOAA's Big Data Project, Amazon makes available NEXRAD, GOES, and other data publicly available via Amazon Web Services (AWS). You can use `rclone` to access this data and download for your use. (You can even use rclone to access personal OneDrive, Google Drive, Box, and other types of cloud storage.)
+As part of NOAA's Big Data Project, Amazon makes available NEXRAD, GOES, HRRR, and other data publicly available via Amazon Web Services (AWS). You can use `rclone` to access this data and download for your use. (You can even use rclone to access personal OneDrive, Google Drive, Box, and other types of cloud storage.)
 
 ## 1. Download and install `rclone` on your linux machine
 
@@ -48,19 +48,31 @@ You will use the remote you just set up to access NOAA's public buckets on Amazo
 |GOES16| `noaa-goes16`| [link](https://registry.opendata.aws/noaa-goes/) |
 |GOES17| `noaa-goes17`| [link](https://registry.opendata.aws/noaa-goes/) |
 |NEXRAD| `noaa-nexrad-level2`| [link](https://registry.opendata.aws/noaa-nexrad/) |
+|HRRR| `noaa-hrrr-bdp-pds`| [link](https://registry.opendata.aws/noaa-hrrr-pds/) |
+
+> Note: **bdp-pds** stands for Big Data Program Public Data Set
 
 You access the bucket contents by typing the command `rclone [command and options] [remote name]:[bucket name]`. Documentation for all the commands and options can be found on the [rclone](https://rclone.org/) website.
 
-### List directories
+### List directories and files
 
+    # List bucket directories
     rclone lsd publicAWS:noaa-goes16/
+    
+    # List bucket directories for specific folders
+    rclone lsd publicAWS:noaa-hrrr-bdp-pds/hrrr.20210101
+
+    # List files in bucket
+    rclone ls publicAWS:noaa-hrrr-bdp-pds/hrrr.20210101/conus
 
 ### Copy file or files to your local machine
 
     rclone copy publicAWS:noaa-goes16/ABI-L2-MCMIPC/2018/283/00/OR_ABI-L2-MCMIPC-M3_G16_s20182830057203_e20182830059576_c20182830100076.nc ./
 
 
-<br><br>
+---
+---
+
 
 # How to use rclone with Python
 
