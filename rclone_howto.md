@@ -69,6 +69,18 @@ You access the bucket contents by typing the command `rclone [command and option
 
     rclone copy publicAWS:noaa-goes16/ABI-L2-MCMIPC/2018/283/00/OR_ABI-L2-MCMIPC-M3_G16_s20182830057203_e20182830059576_c20182830100076.nc ./
 
+> **Note for access to HRRR archive on Pando**
+> 
+> The remote gateway for Pando is https://pando-rgw01.chpc.utah.edu. You could config rclone to access HRRR on Pando with
+> ```
+> [horelS3]
+> type = s3
+> provider = Ceph
+> env_auth = false
+> endpoint = https://pando-rgw01.chpc.utah.edu
+> ```
+> Then look at the bucket with `rclone lsd horelS3:hrrr/`
+
 
 ---
 ---
