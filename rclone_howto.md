@@ -38,7 +38,7 @@ The prompt will ask you if something like following is correct:
 
 If it looks right, accept with `y` and exit the setup.
 
-This configuration is saved in the `.rclone.config` file in your home directory.
+This configuration is saved in the `~/.config/rclone.config` file.
 
 ## 3. `rclone` access to public buckets
 You will use the remote you just set up to access NOAA's public buckets on Amazon Web Services S3. Below are the names of some of NOAA's public buckets. 
