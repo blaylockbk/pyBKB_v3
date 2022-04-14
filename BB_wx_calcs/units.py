@@ -6,21 +6,25 @@ def K_to_C(K):
     """Convert Kelvin to Celsius"""
     return K - 273.15
 
+
 def K_to_F(K):
     """convert Kelvin to Fahrenheit"""
-    return (K-273.15)*9/5.+32
+    return (K - 273.15) * 9 / 5.0 + 32
+
 
 def C_to_K(T_C):
     """Converts celsius to Kelvin"""
     return T_C + 273.15
 
+
 def C_to_F(C):
     """Converts Celsius to Fahrenheit"""
-    return C*9/5.+32
+    return C * 9 / 5.0 + 32
+
 
 def F_to_C(F):
     """Convert Fahrenheit to Celsius"""
-    return (F-32) * 5/9
+    return (F - 32) * 5 / 9
 
 
 # --- Wind --------------------------------------------------------------------

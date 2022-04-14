@@ -13,20 +13,20 @@ Also:
 import os
 from datetime import datetime, timedelta
 
-variable = 'TMP:2-m'
+variable = "TMP:2-m"
 
 # The date range (leap year)
 sDATE = datetime(2016, 1, 1)
 eDATE = datetime(2017, 1, 1)
 # Which hours and forecasts
 hours = range(24)
-fxx = range(0,19,6)
+fxx = range(0, 19, 6)
 window = 15
 jobs_per_worker = 4
 
 retry = 10
 
-print('Creating DAGMan for:', variable)
+print("Creating DAGMan for:", variable)
 
 # =============================================================================
 # === Remove previous dag.dag.* files =========================================
@@ -36,13 +36,13 @@ but a new job cannot run if these files exist.
 WARNING! We do not want to remove the submit.dag file, but if you do, it's ok
 because this script makes a new one.
 """
-rm = os.system('rm dag.dag.*')
+rm = os.system("rm dag.dag.*")
 
 # =============================================================================
 # === Create a log directory if it doesn't exist ==============================
-if not os.path.isdir('./log'):
-    os.mkdir('./log')
-    print('  - created ./log directory.')
+if not os.path.isdir("./log"):
+    os.mkdir("./log")
+    print("  - created ./log directory.")
 
 # =============================================================================
 # === Write the submit.dag file =+++==========================================
@@ -55,8 +55,8 @@ DAGMan File structure:
     RETRY <job_id> 10
 """
 
-var = variable.replace(' ', '-')
-DATES = [sDATE + timedelta(days=d) for d in range((eDATE-sDATE).days)]
+var = variable.replace(" ", "-")
+DATES = [sDATE + timedelta(days=d) for d in range((eDATE - sDATE).days)]
 
 
 # length of DATES* length of hours must be divisible by jobs_per_worker.
@@ -66,23 +66,22 @@ DATES = [sDATE + timedelta(days=d) for d in range((eDATE-sDATE).days)]
 # Filter by number of jobs each worker works on (a worker will work on a date
 # and then the next x number of days defined by jobs_per_worker).
 jobDATES = DATES[::jobs_per_worker]
-if len(DATES)*len(hours)%jobs_per_worker != 0:
-        raise ValueError("job_per_worker must be divisible by %s" % len(DATES)*len(hours))
+if len(DATES) * len(hours) % jobs_per_worker != 0:
+    raise ValueError("job_per_worker must be divisible by %s" % len(DATES) * len(hours))
 else:
-    print('Writing %s unique jobs' % (len(jobDATES)*len(hours)))
+    print("Writing %s unique jobs" % (len(jobDATES) * len(hours)))
 
 # List the arguments for each job
-args = [[D.month, D.day, hour, f]
-        for D in jobDATES
-        for hour in hours
-        for f in fxx]
+args = [[D.month, D.day, hour, f] for D in jobDATES for hour in hours for f in fxx]
 
 with open("submit.dag", "w") as f:
     for i, (month, day, hour, fxx) in enumerate(args):
-        f.write('JOB %s_%s %s\n' % (var, i, "job.submit"))
-        f.write('VARS %s_%s ID="%04d" var="%s" month="%s" day="%s" hour="%s" fxx="%s" window="%s" jobs_per_worker="%s"\n'
-                 % (var, i, i, var, month, day, hour, fxx, window, jobs_per_worker))
-        f.write('RETRY %s_%s %s\n' % (var, i, retry))
-        f.write('\n')
+        f.write("JOB %s_%s %s\n" % (var, i, "job.submit"))
+        f.write(
+            'VARS %s_%s ID="%04d" var="%s" month="%s" day="%s" hour="%s" fxx="%s" window="%s" jobs_per_worker="%s"\n'
+            % (var, i, i, var, month, day, hour, fxx, window, jobs_per_worker)
+        )
+        f.write("RETRY %s_%s %s\n" % (var, i, retry))
+        f.write("\n")
 
 print("  - Wrote a new submit.dag file for %s jobs." % len(args))

@@ -28,17 +28,19 @@ from datetime import datetime, timedelta
 import h5py
 
 import matplotlib as mpl
-#mpl.use('Agg')   # uncomment for cronjob
+
+# mpl.use('Agg')   # uncomment for cronjob
 import matplotlib.pyplot as plt
-mpl.rcParams['figure.figsize'] = [12, 10]
-mpl.rcParams['savefig.bbox'] = 'tight'
-mpl.rcParams['savefig.dpi'] = 100     # For web
-mpl.rcParams['figure.titleweight'] = 'bold'
-mpl.rcParams['xtick.labelsize'] = 10
-mpl.rcParams['ytick.labelsize'] = 10
-mpl.rcParams['axes.labelsize'] = 8
-mpl.rcParams['axes.titlesize'] = 12
-mpl.rcParams['figure.subplot.hspace'] = 0.01
+
+mpl.rcParams["figure.figsize"] = [12, 10]
+mpl.rcParams["savefig.bbox"] = "tight"
+mpl.rcParams["savefig.dpi"] = 100  # For web
+mpl.rcParams["figure.titleweight"] = "bold"
+mpl.rcParams["xtick.labelsize"] = 10
+mpl.rcParams["ytick.labelsize"] = 10
+mpl.rcParams["axes.labelsize"] = 8
+mpl.rcParams["axes.titlesize"] = 12
+mpl.rcParams["figure.subplot.hspace"] = 0.01
 
 # Colorbar
 pad = 0.01
@@ -46,11 +48,12 @@ shrink = 0.7
 
 
 import sys, os
-sys.path.append('/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3')
+
+sys.path.append("/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3")
 # For some reason, the pyBKB_v3 version of basemap won't load correctly.
 # So, we hack it an load it from the version 2.7 packages
-#sys.path.append('/uufs/chpc.utah.edu/sys/pkg/python/2.7.3_rhel6/lib/python2.7/site-packages/')
-#import BB_maps.my_basemap import draw_HRRR_map, draw_ALASKA_map
+# sys.path.append('/uufs/chpc.utah.edu/sys/pkg/python/2.7.3_rhel6/lib/python2.7/site-packages/')
+# import BB_maps.my_basemap import draw_HRRR_map, draw_ALASKA_map
 from BB_HRRR.HRRR_Pando import get_hrrr_variable, get_hrrr_latlon, hrrr_subset
 from BB_MesoWest.get_MesoWest import get_mesowest_stninfo
 from BB_wx_calcs.humidity import Tempdwpt_to_RH
@@ -62,17 +65,22 @@ from BB_cmap.reflectivity_colormap import reflect_ncdc
 ###############################################################################
 ###############################################################################
 
+
 def load_lats_lons(model):
     """
     Preload the latitude and longitude grid
     """
-    if model in ['hrrr', 'hrrrX']:
+    if model in ["hrrr", "hrrrX"]:
         lats, lons = get_hrrr_latlon(DICT=False)
-    elif model == 'hrrrak':
-        AK = get_hrrr_variable(datetime(2018, 2, 24, 15), 'TMP:2 m', fxx=0, model='hrrrak', verbose=False)
-        lats = AK['lat']
-        lons = AK['lon']
+    elif model == "hrrrak":
+        AK = get_hrrr_variable(
+            datetime(2018, 2, 24, 15), "TMP:2 m", fxx=0, model="hrrrak", verbose=False
+        )
+        lats = AK["lat"]
+        lons = AK["lon"]
     return [lats, lons]
+
+
 '''
 
 def draw_map_base(model, dsize, background,

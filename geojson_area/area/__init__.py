@@ -3,7 +3,7 @@ from __future__ import division
 import json
 from math import pi, sin
 
-__version__ = '1.1.1'
+__version__ = "1.1.1"
 WGS84_RADIUS = 6378137
 
 
@@ -81,14 +81,14 @@ def area(geometry):
 
     _area = 0
 
-    if geometry['type'] == 'Polygon':
-        return polygon__area(geometry['coordinates'])
-    elif geometry['type'] == 'MultiPolygon':
-        for i in range(0, len(geometry['coordinates'])):
-            _area += polygon__area(geometry['coordinates'][i])
+    if geometry["type"] == "Polygon":
+        return polygon__area(geometry["coordinates"])
+    elif geometry["type"] == "MultiPolygon":
+        for i in range(0, len(geometry["coordinates"])):
+            _area += polygon__area(geometry["coordinates"][i])
 
-    elif geometry['type'] == 'GeometryCollection':
-        for i in range(0, len(geometry['geometries'])):
-            _area += area(geometry['geometries'][i])
+    elif geometry["type"] == "GeometryCollection":
+        for i in range(0, len(geometry["geometries"])):
+            _area += area(geometry["geometries"][i])
 
     return _area

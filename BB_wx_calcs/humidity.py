@@ -2,6 +2,7 @@ import numpy as np
 
 # --- Humidity ---------------------------------------------------------------
 
+
 def dwptRH_to_Temp(dwpt, RH):
     """
     Convert a dew point temerature and relative humidity to an air temperature.
@@ -16,7 +17,11 @@ def dwptRH_to_Temp(dwpt, RH):
     """
     a = 17.625
     b = 243.04
-    Temp = b * (a*dwpt/(b+dwpt)-np.log(RH/100.)) / (a+np.log(RH/100.)-(a*dwpt/(b+dwpt)))
+    Temp = (
+        b
+        * (a * dwpt / (b + dwpt) - np.log(RH / 100.0))
+        / (a + np.log(RH / 100.0) - (a * dwpt / (b + dwpt)))
+    )
     return Temp
 
 
@@ -31,11 +36,11 @@ def Tempdwpt_to_RH(Temp, dwpt):
         dwpt - Dew point temperature in Celsius
 
     Output:
-        RH - relative humidity in % 
+        RH - relative humidity in %
     """
     a = 17.625
     b = 243.04
-    RH = 100*(np.exp((a*dwpt/(b+dwpt)))/np.exp((a*Temp/(b+Temp))))
+    RH = 100 * (np.exp((a * dwpt / (b + dwpt))) / np.exp((a * Temp / (b + Temp))))
     return RH
 
 
@@ -68,12 +73,17 @@ def TempRH_to_dwpt(Temp, RH):
     if passed is True:
         a = 17.625
         b = 243.04
-        dwpt = b * (np.log(RH/100.) + (a*Temp/(b+Temp))) / (a-np.log(RH/100.)-((a*Temp)/(b+Temp)))
+        dwpt = (
+            b
+            * (np.log(RH / 100.0) + (a * Temp / (b + Temp)))
+            / (a - np.log(RH / 100.0) - ((a * Temp) / (b + Temp)))
+        )
         return dwpt
 
     else:
         print("TempRH_to_dwpt input requires a valid temperature and humidity.")
         return "Input needs a valid temperature (C) and humidity (%)."
+
 
 def TempRH_to_dwpt_2(Temp, RH):
     """
@@ -89,14 +99,15 @@ def TempRH_to_dwpt_2(Temp, RH):
     Output:
         dwpt - Dew point temperature in Celsius
     """
-    p1 = (RH/100.)**(1/8.)
-    p2 = 112 + 0.9*Temp
-    p3 = 0.1*Temp
+    p1 = (RH / 100.0) ** (1 / 8.0)
+    p2 = 112 + 0.9 * Temp
+    p3 = 0.1 * Temp
     p4 = 112
 
-    Td = p1*p2+p3-p4
+    Td = p1 * p2 + p3 - p4
 
     return Td
+
 
 def PresTempSpecHumid_to_RH(pres, temp, specific_humidity):
     """
@@ -108,5 +119,11 @@ def PresTempSpecHumid_to_RH(pres, temp, specific_humidity):
     temp - temerature in C
     specific_humidity in kg/kg
     """
-    RH = 0.263*pres*100*specific_humidity*(np.exp((17.67*(temp+273.15-273.15))/(temp+273.15-29.65)))**-1
+    RH = (
+        0.263
+        * pres
+        * 100
+        * specific_humidity
+        * (np.exp((17.67 * (temp + 273.15 - 273.15)) / (temp + 273.15 - 29.65))) ** -1
+    )
     return RH

@@ -10,7 +10,7 @@ os.system('convert img1.png img2.png +append new.png')
 import os
 from datetime import datetime, timedelta
 
-'''
+"""
 HEAD = '/uufs/chpc.utah.edu/common/home/u0553130/public_html/PhD/HRRR_RMSE/'
 for v in ['TMP:2 m', 'DPT:2 m', 'CAPE:surface', 'HGT:500 mb', 'WIND:10 m', 'UGRD:10 m', 'VGRD:10 m', 'REFC:entire', 'LTNG:entire']:
     for h in range(24):
@@ -26,9 +26,9 @@ for v in ['TMP:2 m', 'DPT:2 m', 'CAPE:surface', 'HGT:500 mb', 'WIND:10 m', 'UGRD
             os.system('convert %s %s +append %s' % (img1, img2, new))
         except:
             pass
-'''
+"""
 
-'''
+"""
 HEAD_left = '/uufs/chpc.utah.edu/common/home/u0553130/public_html/PhD/HRRR_Spread/Hourly_May2018-Oct2018/'
 HEAD_right = '/uufs/chpc.utah.edu/common/home/u0553130/public_html/PhD/GOES16_GLM/Hourly_May2018-Oct2018/'
 DIRS = os.listdir(HEAD_left)
@@ -47,9 +47,9 @@ for v in ['UVGRD']:
             os.system('convert %s -resize 50%% %s' % (new, new))
         except:
             pass
-'''
+"""
 
-'''
+"""
 HEAD_left = '/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/grid_resilience/'
 HEAD_right = '/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/grid_resilience/'
 
@@ -66,25 +66,25 @@ for f in range(19):
         os.system('convert %s -resize 85%% %s' % (new, new))
     except:
         pass
-'''
+"""
 
-HEAD_top = '/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/publications/GLM_HRRR/figs/May2019/cases-Scores_'
-HEAD_bottom = '/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/publications/GLM_HRRR/figs/May2019/not_shown_Cases-Map_'
+HEAD_top = "/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/publications/GLM_HRRR/figs/May2019/cases-Scores_"
+HEAD_bottom = "/uufs/chpc.utah.edu/common/home/u0553130/pyBKB_v3/publications/GLM_HRRR/figs/May2019/not_shown_Cases-Map_"
 
 sDATE = datetime(2019, 5, 8, 10)
 eDATE = datetime(2019, 5, 8, 13)
-hours = int((eDATE-sDATE).days*24 + (eDATE-sDATE).seconds/60/60)
-DATES = [sDATE+timedelta(hours=h) for h in range(hours)]
+hours = int((eDATE - sDATE).days * 24 + (eDATE - sDATE).seconds / 60 / 60)
+DATES = [sDATE + timedelta(hours=h) for h in range(hours)]
 
 for DATE in DATES:
-    img1 = HEAD_top+DATE.strftime('%Y%m%d_%H%M.png')
-    img2 = HEAD_bottom+DATE.strftime('%Y%m%d_%H%M.png')
-    SAVEDIR  = '/uufs/chpc.utah.edu/common/home/u0553130/public_html/PhD/GLM_and_HRRR/CaseEvents/May2019_storm/'
+    img1 = HEAD_top + DATE.strftime("%Y%m%d_%H%M.png")
+    img2 = HEAD_bottom + DATE.strftime("%Y%m%d_%H%M.png")
+    SAVEDIR = "/uufs/chpc.utah.edu/common/home/u0553130/public_html/PhD/GLM_and_HRRR/CaseEvents/May2019_storm/"
     if not os.path.exists(SAVEDIR):
         os.makedirs(SAVEDIR)
-    new = SAVEDIR+DATE.strftime('%Y%m%d_%H%M.png')
+    new = SAVEDIR + DATE.strftime("%Y%m%d_%H%M.png")
     try:
-        os.system('convert %s %s -append %s' % (img1, img2, new))
-        print('Saved:', DATE)
+        os.system("convert %s %s -append %s" % (img1, img2, new))
+        print("Saved:", DATE)
     except:
         pass
