@@ -5,9 +5,16 @@ October 10, 2018
 
 As part of NOAA's Big Data Project, Amazon makes available NEXRAD, GOES, HRRR, and other data publicly available via Amazon Web Services (AWS). You can use `rclone` to access this data and download for your use. (You can even use rclone to access personal OneDrive, Google Drive, Box, and other types of cloud storage.)
 
-## 1. Download and install `rclone` on your linux machine
+## 1. Download and install `rclone`
+
+Rclone can be installed on any platform.
 
 https://rclone.org/
+
+It can also be easily installed via conda
+```
+conda install -c conda-forge rclone
+```
 
 ## 2. Configure `rclone` to access **Amazon S3**
 After `rclone` has been downloaded and installed, configure a remote by typing `rclone config`. Then type `n` for `new remote`.
